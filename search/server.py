@@ -4,19 +4,25 @@ import sqlite3
 import os.path
 
 
-db = sqlite3.connect('file:index.db?mode=ro', uri=True)
 basedir = '/archive/u1/src/alire-backup'
+db = sqlite3.connect('file:index.db?mode=ro', uri=True)
 
 
 def search(query):
     seen = set()
     head = open('head.html', 'r').read()
     tail = open('tail.html', 'r').read()
-    cur = db.cursor()
-    cur.execute('SELECT crate, filename, path, rank FROM f WHERE text MATCH ? GROUP BY crate ORDER BY rank', (query,))
     yield head.format(query=query).encode('utf-8')
+    cur = db.cursor()
+    try:
+        cur.execute('SELECT crate, filename, path, rank FROM f WHERE text MATCH ? GROUP BY crate, filename ORDER BY rank LIMIT 250', (query,))
+    except Exception as e:
+        print('malformed query', repr(query), str(e))
+        yield b'Malformed query'
+        return
+
     for crate, filename, path, rank in cur.fetchall():
-        key = (crate, filename)
+        key = path
         if key in seen:
             continue
         else:
@@ -36,6 +42,7 @@ def search(query):
         #yield b'</pre>\n'
 
         yield b'</div>\n'
+    cur.close()
 
     if len(seen) == 0:
         yield b'No results!'
@@ -50,7 +57,8 @@ def index():
 
 def make_headers(content_type):
     return [
-        ('Content-type', content_type),
+        ('Content-Type', content_type),
+        ('Cache-Control', 'max-age=604800')
     ]
 
 
@@ -87,11 +95,14 @@ def application(environ, start_response):
         elif environ['PATH_INFO'] == '/ada.svg':
             start_response('200 OK', make_headers('image/svg+xml'))
             return [open('ada.svg', 'rb').read()]
-    
-    start_response('404 Not Found', make_headers('text/plain;charset=utf-8'))
-    return [b'404 Not Found\r\n']
+        start_response('404 Not Found', make_headers('text/plain;charset=utf-8'))
+        return [b'404 Not Found\r\n']
+    else:
+        start_response('405 Method Not Allowed', make_headers('text/plain;charset=utf-8'))
+        return ['405 Method Not Allowed\r\n']
 
 
 if __name__ == '__main__':
     server = wsgiref.simple_server.make_server('', 8000, application)
     server.serve_forever()
+    #db.close()
