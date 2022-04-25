@@ -15,7 +15,7 @@ def search(query):
     yield head.format(query=query).encode('utf-8')
     cur = db.cursor()
     try:
-        cur.execute('SELECT crate, filename, path, rank FROM f WHERE text MATCH ? GROUP BY crate, filename ORDER BY rank LIMIT 250', (query,))
+        cur.execute('SELECT crate, filename, path, rank FROM f WHERE text MATCH ? GROUP BY crate, filename ORDER BY rank LIMIT 250', ('"%s"' % query,))
     except Exception as e:
         print('malformed query', repr(query), str(e))
         yield b'Malformed query'
