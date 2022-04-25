@@ -4,7 +4,7 @@ import sqlite3
 import os.path
 
 
-basedir = '/archive/u1/src/alire-backup'
+basedir = '/home/search/alire-backup'
 db = sqlite3.connect('file:index.db?mode=ro', uri=True)
 
 
@@ -58,7 +58,7 @@ def index():
 def make_headers(content_type):
     return [
         ('Content-Type', content_type),
-        ('Cache-Control', 'max-age=604800')
+        ('Cache-Control', 'public, max-age=604800')
     ]
 
 
@@ -99,7 +99,7 @@ def application(environ, start_response):
         return [b'404 Not Found\r\n']
     else:
         start_response('405 Method Not Allowed', make_headers('text/plain;charset=utf-8'))
-        return ['405 Method Not Allowed\r\n']
+        return [b'405 Method Not Allowed\r\n']
 
 
 if __name__ == '__main__':

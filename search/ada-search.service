@@ -1,0 +1,9 @@
+[Unit]
+Description=ada-search
+
+[Service]
+Type=simple
+Restart=always
+User=search
+WorkingDirectory=/home/search/alire-backup/search
+ExecStart=/usr/bin/python3 server.py
