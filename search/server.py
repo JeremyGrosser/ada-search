@@ -77,7 +77,7 @@ def application(environ, start_response):
                 print(str(e))
                 start_response('400 Bad Request', make_headers('text/plain;charset=utf-8'))
                 return [b'400 Bad Request\r\n']
-        elif environ['PATH_INFO'].startswith('/source/'):
+        elif environ['PATH_INFO'].startswith('/source/alire-'):
             try:
                 path = environ['PATH_INFO'].split('/', 2)[-1]
                 path = os.path.abspath(os.path.join(basedir, path))
