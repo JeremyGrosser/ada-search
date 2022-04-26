@@ -1,3 +1,5 @@
+from html.parser import HTMLParser
+from io import StringIO
 import wsgiref.simple_server
 import urllib.parse
 import sqlite3
@@ -8,11 +10,31 @@ basedir = '/home/search/alire-backup'
 db = sqlite3.connect('file:index.db?mode=ro', uri=True)
 
 
+
+class MLStripper(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.reset()
+        self.strict = False
+        self.convert_charrefs= True
+        self.text = StringIO()
+    def handle_data(self, d):
+        self.text.write(d)
+    def get_data(self):
+        return self.text.getvalue()
+
+
+def strip_tags(html):
+    s = MLStripper()
+    s.feed(html)
+    return s.get_data()
+
+
 def search(query):
     seen = set()
     head = open('head.html', 'r').read()
     tail = open('tail.html', 'r').read()
-    query = query.strip('"\'')
+    query = strip_tags(query.strip('"\''))
     yield head.format(query=query).encode('utf-8')
     cur = db.cursor()
     try:
