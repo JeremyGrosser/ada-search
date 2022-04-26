@@ -12,6 +12,7 @@ def search(query):
     seen = set()
     head = open('head.html', 'r').read()
     tail = open('tail.html', 'r').read()
+    query = query.strip('"\'')
     yield head.format(query=query).encode('utf-8')
     cur = db.cursor()
     try:
