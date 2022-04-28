@@ -114,14 +114,18 @@ def application(environ, start_response):
             try:
                 path = environ['PATH_INFO'].split('/', 2)[-1]
                 path = os.path.abspath(os.path.join(basedir, path))
-                if not path.startswith(basedir) or not allowed_extension(path) or not os.path.exists(path):
+                if not path.startswith(basedir) or not allowed_extension(path):
                     start_response('404 Not Found', make_headers('text/plain;charset=utf-8'))
                     return [b'404 Not Found\r\n']
                 else:
                     if path.endswith('.html'):
+                        path = path.rsplit('.', 1)[0]
+                        if not os.path.exists(path):
+                            start_response('404 Not Found', make_headers('text/plain;charset=utf-8'))
+                            return [b'404 Not Found\r\n']
+
                         query = urllib.parse.parse_qs(environ['QUERY_STRING'])
                         lineno = query.get('lineno', None)
-                        path = path.rsplit('.', 1)[0]
                         with open(path, 'r') as fd:
                             if lineno is not None:
                                 hl_lines = [int(lineno[0])]
@@ -137,6 +141,10 @@ def application(environ, start_response):
                             start_response('200 OK', make_headers('text/html;charset=utf-8'))
                             return [data.encode('utf-8')]
                     else:
+                        if not os.path.exists(path):
+                            start_response('404 Not Found', make_headers('text/plain;charset=utf-8'))
+                            return [b'404 Not Found\r\n']
+
                         with open(path, 'rb') as fd:
                             start_response('200 OK', make_headers('text/plain;charset=utf-8'))
                             return [fd.read()]
