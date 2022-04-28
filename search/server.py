@@ -8,6 +8,8 @@ import wsgiref.simple_server
 import urllib.parse
 import sqlite3
 import os.path
+import traceback
+import sys
 
 
 basedir = '/home/search/alire-backup'
@@ -91,7 +93,7 @@ def make_headers(content_type):
 
 
 def allowed_extension(path):
-    ext = path.rsplit('.', 1)[1]
+    ext = path.rsplit('.', 1)[-1]
     return ext in ('html', 'ads', 'adb')
 
 
@@ -149,6 +151,7 @@ def application(environ, start_response):
                             start_response('200 OK', make_headers('text/plain;charset=utf-8'))
                             return [fd.read()]
             except Exception as e:
+                traceback.print_tb(sys.exc_info()[2])
                 print(str(e))
                 start_response('500 Internal Server Error', make_headers('text/plain;charset=utf-8'))
                 return [b'500 Internal Server Error\r\n']
