@@ -22,4 +22,5 @@ for crate in os.listdir(basedir):
             except Exception as e:
                 print(str(e))
 db.commit()
+db.execute('pragma optimize')
 db.close()
