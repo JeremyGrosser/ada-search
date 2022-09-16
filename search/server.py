@@ -128,7 +128,7 @@ def application(environ, start_response):
 
                         query = urllib.parse.parse_qs(environ['QUERY_STRING'])
                         lineno = query.get('lineno', None)
-                        with open(path, 'r') as fd:
+                        with open(path, 'rb') as fd:
                             if lineno is not None:
                                 hl_lines = [int(lineno[0])]
                             else:
@@ -161,6 +161,9 @@ def application(environ, start_response):
         elif environ['PATH_INFO'] == '/search.css':
             start_response('200 OK', make_headers('text/css;charset=utf-8'))
             return [open('res/search.css', 'rb').read()]
+        elif environ['PATH_INFO'] == '/robots.txt':
+            start_response('200 OK', make_headers('text/plain;charset=utf-8'))
+            return [open('res/robots.txt', 'rb').read()]
         start_response('404 Not Found', make_headers('text/plain;charset=utf-8'))
         return [b'404 Not Found\r\n']
     else:
