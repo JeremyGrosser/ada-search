@@ -1,7 +1,7 @@
 import sqlite3
 import os
 
-basedir = '../alire-20220425'
+basedir = '../alire-20220916'
 os.unlink('index.db')
 db = sqlite3.connect('index.db')
 db.execute('CREATE VIRTUAL TABLE f USING fts5(crate, path, filename, text);')
