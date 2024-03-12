@@ -1,6 +1,7 @@
 from pygments import highlight
 from pygments.lexers import AdaLexer
 from pygments.formatters import HtmlFormatter
+from pygments.styles import get_style_by_name
 
 from html.parser import HTMLParser
 from io import StringIO
@@ -16,6 +17,7 @@ basedir = '/home/search/alire-backup'
 db = sqlite3.connect('file:index.db?mode=ro', uri=True)
 
 lexer = AdaLexer()
+highlight_style = get_style_by_name('tango')
 
 
 class MLStripper(HTMLParser):
@@ -133,7 +135,7 @@ def application(environ, start_response):
                                 hl_lines = [int(lineno[0])]
                             else:
                                 hl_lines = []
-                            formatter = HtmlFormatter(linenos=True, cssclass="source", hl_lines=hl_lines)
+                            formatter = HtmlFormatter(linenos=True, cssclass="source", hl_lines=hl_lines, style=highlight_style)
                             html = highlight(fd.read(), lexer, formatter)
                                 
                             template = open('html/highlight.html', 'r').read()
@@ -158,6 +160,9 @@ def application(environ, start_response):
         elif environ['PATH_INFO'] == '/ada.svg':
             start_response('200 OK', make_headers('image/svg+xml'))
             return [open('res/ada.svg', 'rb').read()]
+        elif environ['PATH_INFO'] == '/ada-dark.svg':
+            start_response('200 OK', make_headers('image/svg+xml'))
+            return [open('res/ada-dark.svg', 'rb').read()]
         elif environ['PATH_INFO'] == '/search.css':
             start_response('200 OK', make_headers('text/css;charset=utf-8'))
             return [open('res/search.css', 'rb').read()]
