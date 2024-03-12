@@ -1,0 +1,22 @@
+name = "codesearch"
+description = ""
+version = "0.1.0-dev"
+
+authors = ["Jeremy Grosser"]
+maintainers = ["Jeremy Grosser <jeremy@synack.me>"]
+maintainers-logins = ["JeremyGrosser"]
+licenses = "BSD-3-Clause"
+website = ""
+tags = []
+
+executables = ["codesearch"]
+
+[[depends-on]]
+sqlite3 = "^3.42.0"
+vss = "^24.0.0"
+
+[[pins]]
+vss = { url='https://github.com/AdaCore/VSS' }
+
+[[pins]]
+sqlite3 = { path='../../sqlite3_binding' }

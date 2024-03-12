@@ -1,2 +1,4 @@
 alire-*
 *.db
+*.swp
+index.db*
