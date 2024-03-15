@@ -14,7 +14,7 @@ package body Codesearch.Database is
    procedure Initialize is
    begin
       Sqlite.Initialize;
-      DB := Sqlite.Open ("index.db", (READONLY => True, NOMUTEX => True, others => False));
+      DB := Sqlite.Open ("../index.db", (READONLY => True, NOMUTEX => True, others => False));
       if not Sqlite.Is_Open (DB) then
          raise Program_Error with "Unable to open index.db";
       end if;

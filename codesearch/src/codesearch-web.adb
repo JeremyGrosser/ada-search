@@ -1,60 +1,63 @@
+with VSS.Strings; use VSS.Strings;
+with Codesearch.Strings; use Codesearch.Strings;
 with Codesearch.Database;
-with Codesearch.Strings;
-with Ada.Strings.Fixed;
+with Codesearch.HTTP;
 
 package body Codesearch.Web is
+   package HTTP renames Codesearch.HTTP;
 
-   function Get_Query
-      (Q : String)
-      return String
-   is
-      use Ada.Strings.Fixed;
+   procedure Not_Found is
    begin
-      if Head (Q, 2) = "q=" then
-         return Q (Q'First + 2 .. Q'Last);
+      HTTP.Set_Status (404, "Not Found");
+      HTTP.Set_Header ("Content-Type", "text/html;charset=utf-8");
+      HTTP.Put ("<h1>404 Not Found</h1>" & ASCII.LF);
+   end Not_Found;
+
+   procedure Do_Search is
+      package DB renames Codesearch.Database;
+      Query    : constant Virtual_String := UTF8_Decode (HTTP.Query_Parameter ("q"));
+      Results  : DB.Search_Results (1 .. 250);
+      Last     : Natural;
+   begin
+      DB.Search (Query, Results, Last);
+      if Last = 0 then
+         Not_Found;
+         HTTP.Put ("no results for query: ");
+         HTTP.Put (UTF8_Encode (Query));
       else
-         return "";
+         HTTP.Set_Status (200, "OK");
+         HTTP.Set_Header ("Content-Type", "text/html;charset=utf-8");
+         for I in 1 .. Last loop
+            HTTP.Put ("<p>");
+            HTTP.Put (UTF8_Encode (Results (I).Filename));
+            HTTP.Put ("</p>" & ASCII.LF);
+         end loop;
       end if;
-   end Get_Query;
+   end Do_Search;
 
-   procedure Request
-      (Path         : String;
-       Query_String : String;
-       Response     : out Response_Type)
-   is
+   procedure Do_Index is
    begin
-      Response.Status := 404;
+      HTTP.Set_Status (200, "OK");
+      HTTP.Set_Header ("Content-Type", "text/html;charset=utf-8");
 
-      if Path = "/" then
-         declare
-            Query : constant String := Get_Query (Query_String);
-         begin
-            if Query'Length = 0 then
-               Response.Status := 200;
-               Response.Data := To_Unbounded_String ("index.html");
-            else
-               declare
-                  use Codesearch.Database;
-                  Results  : Search_Results (1 .. 250);
-                  Last     : Natural;
-               begin
-                  Codesearch.Database.Search
-                     (Query   => Codesearch.Strings.UTF8_Decode (Query),
-                      Results => Results,
-                      Last    => Last);
-                  if Last > 0 then
-                     Response.Status := 200;
-                     for I in 1 .. Last loop
-                        Append (Response.Data, "<p>");
-                        Append (Response.Data, Codesearch.Strings.UTF8_Encode (Results (I).Filename));
-                        Append (Response.Data, "</p>");
-                        Append (Response.Data, ASCII.LF);
-                     end loop;
-                  end if;
-               end;
-            end if;
-         end;
+      HTTP.Put ("<form action=""/"" method=""GET"">");
+      HTTP.Put ("<input type=""text"" name=""q"" placeholder=""Search"" />");
+      HTTP.Put ("<input type=""submit"" />");
+      HTTP.Put ("</form>");
+   end Do_Index;
+
+   procedure Do_Request is
+      Path : constant String := HTTP.Path;
+   begin
+      if Path = "" or else Path = "/" then
+         if HTTP.Query_Parameter ("q") /= "" then
+            Do_Search;
+         else
+            Do_Index;
+         end if;
+      else
+         Not_Found;
       end if;
-   end Request;
+   end Do_Request;
 
 end Codesearch.Web;
