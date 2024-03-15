@@ -1,5 +1,6 @@
 pragma Ada_2022;
 with Codesearch.Database;
+with Codesearch.Web;
 with Ada.Text_IO; use Ada.Text_IO;
 
 procedure Main is
@@ -27,6 +28,16 @@ begin
       Put_Line (Row'Image);
    end loop;
    Put_Line (Last'Image & " results returned");
+
+   declare
+      Response : Codesearch.Web.Response_Type;
+   begin
+      Codesearch.Web.Request
+         (Path          => "/",
+          Query_String  => "q=synack",
+          Response      => Response);
+      Put_Line (Response'Image);
+   end;
 
    DB.Close;
 end Main;
