@@ -1,4 +1,5 @@
 with Codesearch.Strings;
+with AAA.Strings; use AAA.Strings;
 with Sqlite;
 
 package body Codesearch.Database is
@@ -29,9 +30,6 @@ package body Codesearch.Database is
    is
       use type Sqlite.Result_Code;
       Status : Sqlite.Result_Code;
-
-      Quote : constant Virtual_String := Codesearch.Strings.UTF8_Decode ("""");
-      Q : Virtual_String := Codesearch.Strings.UTF8_Decode (Query);
    begin
       Last := 0;
 
@@ -39,11 +37,8 @@ package body Codesearch.Database is
          raise Program_Error with "Database not open";
       end if;
 
-      Prepend (Q, Quote);
-      Append (Q, Quote);
-
       Sqlite.Reset (DB, Stmt);
-      Sqlite.Bind_Text (DB, Stmt, 1, Codesearch.Strings.UTF8_Encode (Q));
+      Sqlite.Bind_Text (DB, Stmt, 1, '"' & Replace (Query, """", """""") & '"');
 
       for I in Results'Range loop
          Status := Sqlite.Step (DB, Stmt);

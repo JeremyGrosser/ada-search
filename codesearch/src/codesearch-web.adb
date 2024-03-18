@@ -9,6 +9,8 @@ with Resources;
 with URI;
 with AAA.Strings;
 
+with HTML;
+
 package body Codesearch.Web is
    package Share is new Resources
       (Crate_Name => Codesearch_Config.Crate_Name);
@@ -74,15 +76,15 @@ package body Codesearch.Web is
       Head : constant String := AAA.Strings.Replace
          (Text  => Head_Template,
           Match => "{query}",
-          Subst => Query);
+          Subst => HTML.Escape (Query));
    begin
       DB.Search (Query, Results, Last);
       if Last = 0 then
-         Not_Found;
          HTTP.Set_Status (404, "Not Found");
-         HTTP.Set_Header ("Content-Type", "text/plain;charset=utf-8");
-         HTTP.Put ("no results for query: ");
-         HTTP.Put (Query);
+         HTTP.Set_Header ("Content-Type", "text/html;charset=utf-8");
+         HTTP.Put (Head);
+         HTTP.Put ("no results");
+         HTTP.Put (Tail_Template);
       else
          HTTP.Set_Status (200, "OK");
          HTTP.Set_Header ("Content-Type", "text/html;charset=utf-8");
