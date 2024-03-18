@@ -51,19 +51,9 @@ package body Codesearch.HTTP is
    begin
       if not End_Headers then
          Ada.Text_IO.New_Line;
-         Ada.Text_IO.New_Line;
          End_Headers := True;
       end if;
       Ada.Text_IO.Put (Data);
    end Put;
 
-   procedure Print_Env
-      (Name, Value : String)
-   is
-   begin
-      Ada.Text_IO.Put (Ada.Text_IO.Standard_Error, Name);
-      Ada.Text_IO.Put (Ada.Text_IO.Standard_Error, "=");
-      Ada.Text_IO.Put (Ada.Text_IO.Standard_Error, Value);
-      Ada.Text_IO.New_Line (Ada.Text_IO.Standard_Error);
-   end Print_Env;
 end Codesearch.HTTP;
