@@ -1,9 +1,12 @@
 with Ada.Environment_Variables;
 with Ada.Text_IO;
 with GNAT.CGI;
+with URI;
 
 package body Codesearch.HTTP is
    package Env renames Ada.Environment_Variables;
+
+   End_Headers : Boolean := False;
 
    function Method
       return String
@@ -11,7 +14,7 @@ package body Codesearch.HTTP is
 
    function Path
       return String
-   is (Env.Value ("PATH_INFO", ""));
+   is (URI.Normalize_Path (Env.Value ("DOCUMENT_URI", "")));
 
    function Query_Parameter
       (Key     : String;
@@ -23,7 +26,10 @@ package body Codesearch.HTTP is
       (Key, Value : String)
    is
    begin
-      GNAT.CGI.Put_Header (Key & ": " & Value);
+      Ada.Text_IO.Put (Key);
+      Ada.Text_IO.Put (": ");
+      Ada.Text_IO.Put (Value);
+      Ada.Text_IO.New_Line;
    end Set_Header;
 
    procedure Set_Status
@@ -31,14 +37,33 @@ package body Codesearch.HTTP is
        Message : String)
    is
    begin
-      GNAT.CGI.Put_Header ("Status:" & Code'Image & " " & Message);
+      End_Headers := False;
+      Ada.Text_IO.Put ("Status:");
+      Ada.Text_IO.Put (Code'Image);
+      Ada.Text_IO.Put (' ');
+      Ada.Text_IO.Put (Message);
+      Ada.Text_IO.New_Line;
    end Set_Status;
 
    procedure Put
       (Data : String)
    is
    begin
+      if not End_Headers then
+         Ada.Text_IO.New_Line;
+         Ada.Text_IO.New_Line;
+         End_Headers := True;
+      end if;
       Ada.Text_IO.Put (Data);
    end Put;
 
+   procedure Print_Env
+      (Name, Value : String)
+   is
+   begin
+      Ada.Text_IO.Put (Ada.Text_IO.Standard_Error, Name);
+      Ada.Text_IO.Put (Ada.Text_IO.Standard_Error, "=");
+      Ada.Text_IO.Put (Ada.Text_IO.Standard_Error, Value);
+      Ada.Text_IO.New_Line (Ada.Text_IO.Standard_Error);
+   end Print_Env;
 end Codesearch.HTTP;

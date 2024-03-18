@@ -1,8 +1,6 @@
 with Codesearch.Strings;
 with Sqlite;
 
-with Ada.Text_IO; use Ada.Text_IO;
-
 package body Codesearch.Database is
 
    Query : constant String :=
@@ -14,7 +12,10 @@ package body Codesearch.Database is
    procedure Initialize is
    begin
       Sqlite.Initialize;
-      DB := Sqlite.Open ("../index.db", (READONLY => True, NOMUTEX => True, others => False));
+      DB := Sqlite.Open ("/home/synack/src/ada-search/codesearch/index.db",
+         (READONLY => True,
+          NOMUTEX  => True,
+          others   => False));
       if not Sqlite.Is_Open (DB) then
          raise Program_Error with "Unable to open index.db";
       end if;
@@ -22,7 +23,7 @@ package body Codesearch.Database is
    end Initialize;
 
    procedure Search
-      (Query   : Virtual_String;
+      (Query   : String;
        Results : out Search_Results;
        Last    : out Natural)
    is
@@ -30,7 +31,7 @@ package body Codesearch.Database is
       Status : Sqlite.Result_Code;
 
       Quote : constant Virtual_String := Codesearch.Strings.UTF8_Decode ("""");
-      Q : Virtual_String := Query;
+      Q : Virtual_String := Codesearch.Strings.UTF8_Decode (Query);
    begin
       Last := 0;
 

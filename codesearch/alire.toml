@@ -21,3 +21,5 @@ vss = { url='https://github.com/AdaCore/VSS' }
 [[pins]]
 sqlite3 = { path='../../sqlite3_binding' }
 
+[[depends-on]]
+uri_mime = "^1.4.0"

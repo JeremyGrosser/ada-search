@@ -15,7 +15,7 @@ package Codesearch.Database is
    procedure Initialize;
 
    procedure Search
-      (Query   : Virtual_String;
+      (Query   : String;
        Results : out Search_Results;
        Last    : out Natural);
 
