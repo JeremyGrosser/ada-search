@@ -1,7 +1,7 @@
 with Codesearch.Strings; use Codesearch.Strings;
+with Codesearch.File; use Codesearch.File;
 with Codesearch.Database;
 with Codesearch.HTTP;
-with Codesearch.File;
 with Codesearch.Syntax;
 with Codesearch_Config;
 
@@ -14,13 +14,6 @@ with HTML;
 package body Codesearch.Web is
    package Share is new Resources
       (Crate_Name => Codesearch_Config.Crate_Name);
-   Head_Filename : constant String := Share.Resource_Path & "head.html";
-   Tail_Filename : constant String := Share.Resource_Path & "tail.html";
-   Highlight_Filename : constant String := Share.Resource_Path & "highlight.html";
-
-   Head_Template : String (1 .. Codesearch.File.Length (Head_Filename));
-   Tail_Template : String (1 .. Codesearch.File.Length (Tail_Filename));
-   Highlight_Template : String (1 .. Codesearch.File.Length (Highlight_Filename));
 
    Static_Root : constant String := URI.Normalize_Path (Share.Resource_Path & "static/");
 
@@ -73,22 +66,25 @@ package body Codesearch.Web is
       Results  : DB.Search_Results (1 .. 250);
       Last     : Natural;
 
-      Head : constant String := AAA.Strings.Replace
-         (Text  => Head_Template,
+      Head_Template : constant Unicode := Read_Unicode (UTF8 (Share.Resource_Path & "head.html"));
+      Tail_Template : constant Unicode := Read_Unicode (UTF8 (Share.Resource_Path & "tail.html"));
+
+      Head : constant Unicode := Replace_All
+         (Str   => Head_Template,
           Match => "{query}",
-          Subst => HTML.Escape (Encode (Query)));
+          Subst => HTML.Escape (Query));
    begin
       DB.Search (Query, Results, Last);
       if Last = 0 then
          HTTP.Set_Status (404, "Not Found");
          HTTP.Set_Header ("Content-Type", "text/html;charset=utf-8");
-         HTTP.Put (Head);
+         HTTP.Put (Encode (Head));
          HTTP.Put ("no results");
-         HTTP.Put (Tail_Template);
+         HTTP.Put (Encode (Tail_Template));
       else
          HTTP.Set_Status (200, "OK");
          HTTP.Set_Header ("Content-Type", "text/html;charset=utf-8");
-         HTTP.Put (Head);
+         HTTP.Put (String (Encode (Head)));
          for R of Results (1 .. Last) loop
             HTTP.Put ("<div class=""result"">");
             HTTP.Put (Encode (R.Crate));
@@ -98,7 +94,7 @@ package body Codesearch.Web is
             HTTP.Put (Encode (R.Filename));
             HTTP.Put ("</a></div>" & ASCII.LF);
          end loop;
-         HTTP.Put (Tail_Template);
+         HTTP.Put (String (Encode (Tail_Template)));
       end if;
    end Do_Search;
 
@@ -106,24 +102,25 @@ package body Codesearch.Web is
       (Full_Path : String;
        Raw_Link  : String)
    is
-      Code : constant String := Codesearch.Syntax.Highlight (Full_Path);
+      Code : constant Unicode := Decode (UTF8 (Codesearch.Syntax.Highlight (Full_Path)));
 
-      HTML_1 : constant String := AAA.Strings.Replace
-         (Text  => Highlight_Template,
+      Template : constant Unicode := Read_Unicode (UTF8 (Share.Resource_Path & "highlight.html"));
+      HTML_1 : constant Unicode := Replace
+         (Str   => Template,
           Match => "{filename}",
-          Subst => Full_Path);
-      HTML_2 : constant String := AAA.Strings.Replace
-         (Text => HTML_1,
+          Subst => Decode (UTF8 (Full_Path)));
+      HTML_2 : constant Unicode := Replace
+         (Str   => HTML_1,
           Match => "{raw}",
-          Subst => Raw_Link);
-      HTML_3 : constant String := AAA.Strings.Replace
-         (Text => HTML_2,
+          Subst => Decode (UTF8 (Raw_Link)));
+      HTML_3 : constant Unicode := Replace
+         (Str   => HTML_2,
           Match => "{code}",
           Subst => Code);
    begin
       HTTP.Set_Status (200, "OK");
       HTTP.Set_Header ("Content-Type", "text/html;charset=utf-8");
-      HTTP.Put (HTML_3);
+      HTTP.Put (Encode (HTML_3));
    end Do_Highlight;
 
    procedure Do_Source_File
@@ -173,9 +170,4 @@ package body Codesearch.Web is
          Not_Found;
       end if;
    end Do_Request;
-
-begin
-   Codesearch.File.Read (Head_Filename, Head_Template);
-   Codesearch.File.Read (Tail_Filename, Tail_Template);
-   Codesearch.File.Read (Highlight_Filename, Highlight_Template);
 end Codesearch.Web;

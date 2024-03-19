@@ -1,12 +1,10 @@
+with Codesearch.Strings; use Codesearch.Strings;
+
 package HTML is
 
    function Escape
-      (Text  : String;
+      (Text  : Unicode;
        Quote : Boolean := True)
-      return String;
-
-   function Unescape
-      (Text : String)
-      return String;
+      return Unicode;
 
 end HTML;

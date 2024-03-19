@@ -1,13 +1,11 @@
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-
 package body HTML is
 
    function Escape
-      (Text  : String;
+      (Text  : Unicode;
        Quote : Boolean := True)
-      return String
+      return Unicode
    is
-      S : Unbounded_String := Null_Unbounded_String;
+      S : Unbounded_Unicode;
    begin
       for I in Text'Range loop
          case Text (I) is
@@ -26,15 +24,7 @@ package body HTML is
                Append (S, Text (I));
          end case;
       end loop;
-      return To_String (S);
+      return To_Unicode (S);
    end Escape;
-
-   function Unescape
-      (Text : String)
-      return String
-   is
-   begin
-      return Text;
-   end Unescape;
 
 end HTML;
