@@ -13,11 +13,9 @@ executables = ["codesearch"]
 
 [[depends-on]]
 sqlite3 = "^3.42.0"
-vss = "^24.0.0"
 uri_mime = "^1.4.0"
 aaa = "~0.2.6"
 resources = "~0.1.0"
 
 [[pins]]
-vss = { url='https://github.com/AdaCore/VSS' }
 sqlite3 = { path='../../sqlite3_binding' }
