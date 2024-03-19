@@ -1,16 +1,20 @@
-with Ada.Strings.UTF_Encoding;
-with VSS.Strings.Conversions;
+with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 
 package body Codesearch.Strings is
 
-   function UTF8_Decode
-      (Str : String)
-      return VSS.Strings.Virtual_String
-   is (VSS.Strings.Conversions.To_Virtual_String (Ada.Strings.UTF_Encoding.UTF_8_String (Str)));
+   function Decode
+      (Str : UTF8)
+      return Unicode
+   is (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Decode (Str));
 
-   function UTF8_Encode
-      (Str : VSS.Strings.Virtual_String)
-      return String
-   is (String (VSS.Strings.Conversions.To_UTF_8_String (Str)));
+   function Encode
+      (Str : Unicode)
+      return UTF8
+   is (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode (Str));
+
+   function Encode
+      (Str : Unbounded_Unicode)
+      return UTF8
+   is (Encode (To_Unicode (Str)));
 
 end Codesearch.Strings;

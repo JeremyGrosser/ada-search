@@ -20,7 +20,13 @@ package body Codesearch.HTTP is
       (Key     : String;
        Default : String := "")
        return String
-   is (GNAT.CGI.Value (Key));
+   is
+   begin
+      return GNAT.CGI.Value (Key);
+   exception
+      when GNAT.CGI.Data_Error =>
+         return Default;
+   end Query_Parameter;
 
    procedure Set_Header
       (Key, Value : String)

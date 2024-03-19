@@ -1,5 +1,3 @@
-with Codesearch.Strings;
-with AAA.Strings; use AAA.Strings;
 with Sqlite;
 
 package body Codesearch.Database is
@@ -24,12 +22,15 @@ package body Codesearch.Database is
    end Initialize;
 
    procedure Search
-      (Query   : String;
+      (Query   : Unicode;
        Results : out Search_Results;
        Last    : out Natural)
    is
       use type Sqlite.Result_Code;
       Status : Sqlite.Result_Code;
+
+      NUL : constant Wide_Wide_Character := Wide_Wide_Character'Val (0);
+      Q : Unbounded_Unicode;
    begin
       Last := 0;
 
@@ -37,16 +38,27 @@ package body Codesearch.Database is
          raise Program_Error with "Database not open";
       end if;
 
+      Append (Q, '"');
+      for Ch of Query loop
+         case Ch is
+            when NUL | '"' | ''' =>
+               null;
+            when others =>
+               Append (Q, Ch);
+         end case;
+      end loop;
+      Append (Q, '"');
+
       Sqlite.Reset (DB, Stmt);
-      Sqlite.Bind_Text (DB, Stmt, 1, '"' & Replace (Query, """", """""") & '"');
+      Sqlite.Bind_Text (DB, Stmt, 1, String (Encode (Q)));
 
       for I in Results'Range loop
          Status := Sqlite.Step (DB, Stmt);
          exit when Status /= Sqlite.SQLITE_ROW;
          Results (I) :=
-            (Crate      => Codesearch.Strings.UTF8_Decode (Sqlite.To_String (Stmt, 0)),
-             Filename   => Codesearch.Strings.UTF8_Decode (Sqlite.To_String (Stmt, 1)),
-             Path       => Codesearch.Strings.UTF8_Decode (Sqlite.To_String (Stmt, 2)),
+            (Crate      => To_Unbounded (Decode (UTF8 (Sqlite.To_String (Stmt, 0)))),
+             Filename   => To_Unbounded (Decode (UTF8 (Sqlite.To_String (Stmt, 1)))),
+             Path       => To_Unbounded (Decode (UTF8 (Sqlite.To_String (Stmt, 2)))),
              Rank       => Sqlite.To_Integer (Stmt, 3));
          Last := I;
       end loop;

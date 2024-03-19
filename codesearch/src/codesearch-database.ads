@@ -1,11 +1,11 @@
-with VSS.Strings; use VSS.Strings;
+with Codesearch.Strings; use Codesearch.Strings;
 
 package Codesearch.Database is
 
    type Search_Result is record
-      Crate    : Virtual_String;
-      Filename : Virtual_String;
-      Path     : Virtual_String;
+      Crate    : Unbounded_Unicode;
+      Filename : Unbounded_Unicode;
+      Path     : Unbounded_Unicode;
       Rank     : Integer;
    end record;
 
@@ -15,7 +15,7 @@ package Codesearch.Database is
    procedure Initialize;
 
    procedure Search
-      (Query   : String;
+      (Query   : Unicode;
        Results : out Search_Results;
        Last    : out Natural);
 

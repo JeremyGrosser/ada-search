@@ -69,14 +69,14 @@ package body Codesearch.Web is
 
    procedure Do_Search is
       package DB renames Codesearch.Database;
-      Query    : constant String := HTTP.Query_Parameter ("q");
+      Query    : constant Unicode := Decode (UTF8 (HTTP.Query_Parameter ("q")));
       Results  : DB.Search_Results (1 .. 250);
       Last     : Natural;
 
       Head : constant String := AAA.Strings.Replace
          (Text  => Head_Template,
           Match => "{query}",
-          Subst => HTML.Escape (Query));
+          Subst => HTML.Escape (Encode (Query)));
    begin
       DB.Search (Query, Results, Last);
       if Last = 0 then
@@ -91,11 +91,11 @@ package body Codesearch.Web is
          HTTP.Put (Head);
          for R of Results (1 .. Last) loop
             HTTP.Put ("<div class=""result"">");
-            HTTP.Put (UTF8_Encode (R.Crate));
+            HTTP.Put (Encode (R.Crate));
             HTTP.Put (" <a href=""/source/");
-            HTTP.Put (Left_Strip (UTF8_Encode (R.Path), "../"));
+            HTTP.Put (Left_Strip (Encode (R.Path), "../"));
             HTTP.Put (".html"">");
-            HTTP.Put (UTF8_Encode (R.Filename));
+            HTTP.Put (Encode (R.Filename));
             HTTP.Put ("</a></div>" & ASCII.LF);
          end loop;
          HTTP.Put (Tail_Template);
