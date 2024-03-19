@@ -41,13 +41,18 @@ package body Codesearch.Database is
       Append (Q, '"');
       for Ch of Query loop
          case Ch is
-            when NUL | '"' | ''' =>
+            when NUL | '"' =>
                null;
             when others =>
                Append (Q, Ch);
          end case;
       end loop;
       Append (Q, '"');
+
+      --  stripped everything except quotes
+      if Length (Q) = 2 then
+         return;
+      end if;
 
       Sqlite.Reset (DB, Stmt);
       Sqlite.Bind_Text (DB, Stmt, 1, String (Encode (Q)));

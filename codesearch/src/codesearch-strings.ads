@@ -13,6 +13,11 @@ package Codesearch.Strings is
        Ch  : Wide_Wide_Character)
    renames Ada.Strings.Wide_Wide_Unbounded.Append;
 
+   function Length
+      (Str : Unbounded_Unicode)
+      return Natural
+   renames Ada.Strings.Wide_Wide_Unbounded.Length;
+
    function To_Unbounded
       (Str : Unicode)
       return Unbounded_Unicode
