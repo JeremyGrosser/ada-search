@@ -3,6 +3,7 @@ with Codesearch.File; use Codesearch.File;
 with Codesearch.Database;
 with Codesearch.HTTP;
 with Codesearch.Syntax;
+with Codesearch.Template;
 with Codesearch_Config;
 
 with Resources;
@@ -19,19 +20,6 @@ package body Codesearch.Web is
 
    package HTTP renames Codesearch.HTTP;
 
-   function Left_Strip
-      (Str    : String;
-       Prefix : String)
-       return String
-   is
-   begin
-      if Prefix'Length <= Str'Length and then Str (Str'First .. Str'First + Prefix'Length - 1) = Prefix then
-         return Str (Str'First + Prefix'Length .. Str'Last);
-      else
-         return Str;
-      end if;
-   end Left_Strip;
-
    procedure Not_Found is
    begin
       HTTP.Set_Status (404, "Not Found");
@@ -44,7 +32,7 @@ package body Codesearch.Web is
        Content_Type : String;
        Root : String := Static_Root)
    is
-      Full_Path   : constant String := URI.Normalize_Path (Root & Path);
+      Full_Path : constant String := URI.Normalize_Path (Root & Path);
    begin
       if AAA.Strings.Has_Prefix (Full_Path, Root) and then Codesearch.File.Exists (Full_Path) then
          declare
@@ -66,35 +54,43 @@ package body Codesearch.Web is
       Results  : DB.Search_Results (1 .. 250);
       Last     : Natural;
 
-      Head_Template : constant Unicode := Read_Unicode (UTF8 (Share.Resource_Path & "head.html"));
-      Tail_Template : constant Unicode := Read_Unicode (UTF8 (Share.Resource_Path & "tail.html"));
+      Env : Unicode_Maps.Map := Unicode_Maps.Empty_Map;
 
-      Head : constant Unicode := Replace_All
-         (Str   => Head_Template,
-          Match => "{query}",
-          Subst => HTML.Escape (Query));
+      Head_Template : constant Unicode := Read_Unicode (Share.Resource_Path & "head.html");
+      Tail          : constant Unicode := Read_Unicode (Share.Resource_Path & "tail.html");
+      Source_URI_Base : constant Relative_Path := "/source/";
    begin
+      Unicode_Maps.Insert (Env, "query", HTML.Escape (Query));
+
       DB.Search (Query, Results, Last);
       if Last = 0 then
          HTTP.Set_Status (404, "Not Found");
          HTTP.Set_Header ("Content-Type", "text/html;charset=utf-8");
-         HTTP.Put (Encode (Head));
+         HTTP.Put (String (Encode (Codesearch.Template.Render (Head_Template, Env))));
          HTTP.Put ("no results");
-         HTTP.Put (Encode (Tail_Template));
+         HTTP.Put (String (Encode (Tail)));
       else
          HTTP.Set_Status (200, "OK");
          HTTP.Set_Header ("Content-Type", "text/html;charset=utf-8");
-         HTTP.Put (String (Encode (Head)));
+         HTTP.Put (String (Encode (Codesearch.Template.Render (Head_Template, Env))));
          for R of Results (1 .. Last) loop
             HTTP.Put ("<div class=""result"">");
-            HTTP.Put (Encode (R.Crate));
-            HTTP.Put (" <a href=""/source/");
-            HTTP.Put (Left_Strip (Encode (R.Path), "../"));
+            HTTP.Put (String (Encode (R.Crate)));
+            HTTP.Put (" <a href=""");
+            HTTP.Put (String
+               (Encode
+                  (Unicode
+                     (Normalize
+                        (Join
+                           (Source_URI_Base, Relative_Path
+                              (Normalize
+                                 (Relative_Path
+                                    (To_Unicode (R.Path))))))))));
             HTTP.Put (".html"">");
-            HTTP.Put (Encode (R.Filename));
+            HTTP.Put (String (Encode (R.Filename)));
             HTTP.Put ("</a></div>" & ASCII.LF);
          end loop;
-         HTTP.Put (String (Encode (Tail_Template)));
+         HTTP.Put (String (Encode (Tail)));
       end if;
    end Do_Search;
 
@@ -102,25 +98,16 @@ package body Codesearch.Web is
       (Full_Path : String;
        Raw_Link  : String)
    is
+      Template : constant Unicode := Read_Unicode (Share.Resource_Path & "highlight.html");
+      Env : Unicode_Maps.Map := Unicode_Maps.Empty_Map;
       Code : constant Unicode := Decode (UTF8 (Codesearch.Syntax.Highlight (Full_Path)));
-
-      Template : constant Unicode := Read_Unicode (UTF8 (Share.Resource_Path & "highlight.html"));
-      HTML_1 : constant Unicode := Replace
-         (Str   => Template,
-          Match => "{filename}",
-          Subst => Decode (UTF8 (Full_Path)));
-      HTML_2 : constant Unicode := Replace
-         (Str   => HTML_1,
-          Match => "{raw}",
-          Subst => Decode (UTF8 (Raw_Link)));
-      HTML_3 : constant Unicode := Replace
-         (Str   => HTML_2,
-          Match => "{code}",
-          Subst => Code);
    begin
+      Unicode_Maps.Insert (Env, "filename", Decode (UTF8 (Full_Path)));
+      Unicode_Maps.Insert (Env, "raw", Decode (UTF8 (Raw_Link)));
+      Unicode_Maps.Insert (Env, "code", Code);
       HTTP.Set_Status (200, "OK");
       HTTP.Set_Header ("Content-Type", "text/html;charset=utf-8");
-      HTTP.Put (Encode (HTML_3));
+      HTTP.Put (String (Encode (Codesearch.Template.Render (Template, Env))));
    end Do_Highlight;
 
    procedure Do_Source_File

@@ -26,7 +26,7 @@ package Codesearch.File is
        Data : out String);
 
    function Read_Unicode
-      (Filename : UTF8)
+      (Filename : String)
       return Unicode;
 
 end Codesearch.File;

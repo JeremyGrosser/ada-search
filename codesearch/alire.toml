@@ -19,3 +19,6 @@ resources = "~0.1.0"
 
 [[pins]]
 sqlite3 = { path='../../sqlite3_binding' }
+
+[build-profiles]
+"*" = "development"

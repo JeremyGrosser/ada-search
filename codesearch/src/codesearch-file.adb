@@ -1,3 +1,4 @@
+pragma Ada_2022;
 with Ada.Containers.Indefinite_Vectors;
 with Ada.Directories;
 with Ada.Streams.Stream_IO;
@@ -23,13 +24,14 @@ package body Codesearch.File is
    begin
       while Last <= Path'Last loop
          if Path (Last) = '/' then
-            Append (Stack, Unicode (Path (First .. Last)));
+            Append (Stack, Unicode (Path (First .. Last - 1)));
             First := Last + 1;
             Last := First;
          else
             Last := Last + 1;
          end if;
       end loop;
+      Last := Last - 1;
       if (Last - First) > 0 then
          Append (Stack, Unicode (Path (First .. Last)));
       end if;
@@ -71,7 +73,7 @@ package body Codesearch.File is
        Data : out String)
    is
       use Ada.Streams.Stream_IO;
-      F : File_Type;
+      F : Ada.Streams.Stream_IO.File_Type;
    begin
       Open (F, In_File, Filename);
       String'Read (Stream (F), Data);
@@ -79,14 +81,14 @@ package body Codesearch.File is
    end Read;
 
    function Read_Unicode
-      (Filename : UTF8)
+      (Filename : String)
       return Unicode
    is
       use Ada.Streams.Stream_IO;
-      F : File_Type;
+      F : Ada.Streams.Stream_IO.File_Type;
       Data : UTF8 (1 .. Length (Filename));
    begin
-      Open (F, In_File, String (Filename));
+      Open (F, In_File, Filename);
       UTF8'Read (Stream (F), Data);
       Close (F);
       return Decode (Data);

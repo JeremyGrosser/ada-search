@@ -1,19 +1,30 @@
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Ada.Strings.Wide_Wide_Fixed;
+with Ada.Strings.Hash;
 
 package body Codesearch.Strings is
+
+   function Hash
+      (Key : Unicode)
+      return Ada.Containers.Hash_Type
+   is (Ada.Strings.Hash (String (Encode (Key))));
 
    function Trim
       (Str : Unicode;
        Ch  : Wide_Wide_Character)
        return Unicode
    is
+      First : Natural := Str'First;
+      Last  : Natural := Str'Last;
    begin
-      if Str'Length > 0 and then Str (Str'First) = Ch then
-         return Str (Str'First + 1 .. Str'Last);
-      else
-         return Str;
-      end if;
+      while First <= Str'Last and then Str (First) = Ch loop
+         First := First + 1;
+      end loop;
+
+      while Last >= Str'First and then Str (Last) = Ch loop
+         Last := Last - 1;
+      end loop;
+      return Str (First .. Last);
    end Trim;
 
    function Replace
@@ -56,37 +67,29 @@ package body Codesearch.Strings is
       return 0;
    end Index;
 
-   function Replace_All
-      (Str, Match, Subst : Unicode)
-      return Unicode
-   is
-      use Ada.Strings.Wide_Wide_Unbounded;
-      S : Unbounded_Unicode := To_Unbounded (Str);
-      First : Natural := 1;
-   begin
-      loop
-         First := Index (Source => Str, Pattern => Match, From => First);
-         exit when First = 0;
-         Delete (S, First, First + Match'Length - 1);
-         Insert (S, First, Subst);
-         First := First + Subst'Length;
-      end loop;
-      return To_Unicode (S);
-   end Replace_All;
-
    function Decode
       (Str : UTF8)
       return Unicode
-   is (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Decode (Str));
+   is (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Decode (String (Str)));
 
    function Encode
       (Str : Unicode)
       return UTF8
-   is (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode (Str));
+   is
+      WWS : constant Wide_Wide_String := Wide_Wide_String (Str);
+      U8  : constant Ada.Strings.UTF_Encoding.UTF_8_String := Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode (WWS);
+   begin
+      return UTF8 (U8);
+   end Encode;
 
    function Encode
       (Str : Unbounded_Unicode)
       return UTF8
-   is (Encode (To_Unicode (Str)));
+   is
+      WWS : constant Wide_Wide_String := To_Unicode (Str);
+      U8  : constant Ada.Strings.UTF_Encoding.UTF_8_String := Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode (WWS);
+   begin
+      return UTF8 (U8);
+   end Encode;
 
 end Codesearch.Strings;
