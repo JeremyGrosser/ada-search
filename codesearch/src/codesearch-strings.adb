@@ -67,6 +67,30 @@ package body Codesearch.Strings is
       return 0;
    end Index;
 
+   function Starts_With
+      (Str : Unicode;
+       Prefix : Unicode)
+       return Boolean
+   is
+   begin
+      if Prefix'Length > Str'Length then
+         return False;
+      end if;
+      return Str (Str'First .. Str'First + Prefix'Length - 1) = Prefix;
+   end Starts_With;
+
+   function Ends_With
+      (Str : Unicode;
+       Suffix : Unicode)
+       return Boolean
+   is
+   begin
+      if Suffix'Length > Str'Length then
+         return False;
+      end if;
+      return Str (Str'Last - (Suffix'Length - 1) .. Str'Last) = Suffix;
+   end Ends_With;
+
    function Decode
       (Str : UTF8)
       return Unicode

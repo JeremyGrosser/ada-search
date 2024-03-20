@@ -35,6 +35,16 @@ package Codesearch.Strings is
       (Str, Match, Subst : Unicode)
        return Unicode;
 
+   function Starts_With
+      (Str    : Unicode;
+       Prefix : Unicode)
+       return Boolean;
+
+   function Ends_With
+      (Str    : Unicode;
+       Suffix : Unicode)
+       return Boolean;
+
    procedure Append
       (Str : in out Unbounded_Unicode;
        Ch  : Wide_Wide_Character)
@@ -49,6 +59,12 @@ package Codesearch.Strings is
       (Left  : in out Unbounded_Unicode;
        Right : Unicode)
    renames Ada.Strings.Wide_Wide_Unbounded.Append;
+
+   procedure Delete
+      (Source  : in out Unbounded_Unicode;
+       From    : Positive;
+       Through : Natural)
+   renames Ada.Strings.Wide_Wide_Unbounded.Delete;
 
    function Length
       (Str : Unbounded_Unicode)
