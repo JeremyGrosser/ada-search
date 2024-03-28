@@ -2,40 +2,31 @@ with Codesearch.Strings; use Codesearch.Strings;
 
 package Codesearch.File is
 
-   type Path is new Unicode;
-
-   Path_Error : exception;
-
-   function To_String
-      (Name : Path)
-      return String;
+   type Relative_Path is new Unicode;
+   type Absolute_Path is new Unicode;
 
    function Join
-      (Left, Right : Path)
-      return Path;
+      (Left, Right : Relative_Path)
+      return Relative_Path;
 
    function Normalize
-      (Name : Path)
-      return Path;
-
-   function Basename
-      (Name : Path)
-      return Path;
-
-   function Remove_Extension
-      (Name : Path)
-      return Path;
+      (Path : Relative_Path)
+      return Absolute_Path;
 
    function Exists
-      (Name : Path)
+      (Filename : String)
       return Boolean;
 
    function Length
-      (Name : Path)
+      (Filename : String)
       return Natural;
 
+   procedure Read
+      (Filename : String;
+       Data : out String);
+
    function Read_Unicode
-      (Name : Path)
+      (Filename : String)
       return Unicode;
 
 end Codesearch.File;

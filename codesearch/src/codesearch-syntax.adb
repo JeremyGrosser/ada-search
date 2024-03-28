@@ -4,8 +4,8 @@ with AAA.Strings;
 package body Codesearch.Syntax is
 
    function Highlight
-      (Filename : Codesearch.File.Path)
-      return Codesearch.Strings.UTF8
+      (Filename : String)
+      return String
    is
       use AAA.Strings;
       Cmd : Vector := Empty_Vector;
@@ -15,8 +15,8 @@ package body Codesearch.Syntax is
          "-f" & "html" &
          "-l" & "ada" &
          "-O" & "style=tango,linenos=1,cssclass=source" &
-         Codesearch.File.To_String (Filename);
+         Filename;
       Result := AAA.Processes.Run (Cmd);
-      return Codesearch.Strings.UTF8 (Flatten (Result.Output, ASCII.LF));
+      return Flatten (Result.Output, ASCII.LF);
    end Highlight;
 end Codesearch.Syntax;
