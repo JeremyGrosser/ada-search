@@ -12,12 +12,17 @@ package Codesearch.Database is
    subtype Search_Result_Index is Positive range 1 .. 250;
    type Search_Results is array (Search_Result_Index range <>) of Search_Result;
 
+   procedure Create;
+
    procedure Initialize;
 
    procedure Search
       (Query   : Unicode;
        Results : out Search_Results;
        Last    : out Natural);
+
+   procedure Add
+      (Crate, Path, Filename, Text : String);
 
    procedure Close;
 

@@ -5,11 +5,12 @@ project Codesearch is
    for Object_Dir use "obj/" & Codesearch_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
-   for Main use ("main.adb");
+   for Main use ("main.adb", "build_index.adb");
 
    package Compiler is
       for Default_Switches ("Ada") use Codesearch_Config.Ada_Compiler_Switches & (
-         "-gnatyM120"
+         "-gnatyM120",
+         "-gnatwJ"
       );
    end Compiler;
 
