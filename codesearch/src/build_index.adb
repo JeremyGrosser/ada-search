@@ -34,8 +34,8 @@ procedure Build_Index is
       if Full_Name'Length >= 4 and then Full_Name (Full_Name'Last - 3 .. Full_Name'Last) = ".ads" then
          --  Put_Line (Full_Name);
          declare
-            Trimmed : constant String := Full_Name (Full_Name'First + Base_Dir'Length - 1 .. Full_Name'Last);
-            Crate   : constant String := Trimmed (Trimmed'First .. Ada.Strings.Fixed.Index (Trimmed, "/"));
+            Trimmed : constant String := Full_Name (Full_Name'First + Base_Dir'Length .. Full_Name'Last);
+            Crate   : constant String := Trimmed (Trimmed'First .. Ada.Strings.Fixed.Index (Trimmed, "/") - 1);
          begin
             Codesearch.Database.Add
                (Crate    => Crate,

@@ -58,7 +58,6 @@ package body Codesearch.Web is
 
       Head_Template : constant Unicode := Read_Unicode (Share.Resource_Path & "head.html");
       Tail          : constant Unicode := Read_Unicode (Share.Resource_Path & "tail.html");
-      Source_URI_Base : constant Relative_Path := "/source/";
    begin
       Unicode_Maps.Insert (Env, "query", HTML.Escape (Query));
 
@@ -81,11 +80,10 @@ package body Codesearch.Web is
                (Encode
                   (Unicode
                      (Normalize
-                        (Join
-                           (Source_URI_Base, Relative_Path
-                              (Normalize
-                                 (Relative_Path
-                                    (To_Unicode (R.Path))))))))));
+                        (Relative_Path
+                           (Normalize
+                              (Relative_Path
+                                 (To_Unicode (R.Path)))))))));
             HTTP.Put (".html"">");
             HTTP.Put (String (Encode (R.Filename)));
             HTTP.Put ("</a></div>" & ASCII.LF);
