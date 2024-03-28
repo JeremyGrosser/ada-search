@@ -1,0 +1,36 @@
+#!/bin/bash
+
+alr build
+
+print_request(){
+    echo -n "${REQUEST_METHOD} "
+    echo -n "${DOCUMENT_URI}"
+    if [ ! -z "${QUERY_STRING}" ]; then
+        echo -n "?${QUERY_STRING}"
+    fi
+    echo ""
+}
+
+check(){
+    response="$(bin/codesearch)"
+    status="$(echo "${response}" | grep '^Status:' | head -n 1 | cut -d' ' -f2)"
+    if [ "${status}" = "${1}" ]; then
+        echo -n "PASS "
+        print_request
+    else
+        echo "${response}"
+        echo -n "FAIL "
+        print_request
+        exit 1
+    fi
+}
+
+export DOCUMENT_URI="/"
+export QUERY_STRING=""
+export REQUEST_METHOD="GET"
+check 200
+
+export DOCUMENT_URI="/"
+export QUERY_STRING="q=test"
+export REQUEST_METHOD="GET"
+check 200
