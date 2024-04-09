@@ -1,7 +1,5 @@
 pragma Ada_2022;
-with Ada.Directories.Hierarchical_File_Names;
 with Ada.Directories; use Ada.Directories;
-with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
@@ -29,7 +27,6 @@ procedure Build_Index is
    procedure Index_File
       (Full_Name : String)
    is
-      package HFN renames Ada.Directories.Hierarchical_File_Names;
    begin
       if Full_Name'Length >= 4 and then Full_Name (Full_Name'Last - 3 .. Full_Name'Last) = ".ads" then
          --  Put_Line (Full_Name);
