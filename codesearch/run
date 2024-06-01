@@ -1,0 +1,5 @@
+#!/bin/bash
+if [ -e fastcgi.sock ]; then
+    rm -f fastcgi.sock
+fi
+exec fcgiwrap -s unix:fastcgi.sock
