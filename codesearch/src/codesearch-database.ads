@@ -14,7 +14,8 @@ package Codesearch.Database is
 
    procedure Create;
 
-   procedure Initialize;
+   procedure Open
+      (Read_Only : Boolean := True);
 
    procedure Search
       (Query   : Unicode;

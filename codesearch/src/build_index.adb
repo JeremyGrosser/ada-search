@@ -71,7 +71,7 @@ procedure Build_Index is
    end Walk;
 begin
    Codesearch.Database.Create;
-   Codesearch.Database.Initialize;
+   Codesearch.Database.Open (Read_Only => False);
    Walk (Base_Dir);
    Codesearch.Database.Close;
 end Build_Index;

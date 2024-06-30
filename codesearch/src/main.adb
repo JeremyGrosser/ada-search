@@ -3,7 +3,7 @@ with Codesearch.Web;
 
 procedure Main is
 begin
-   Codesearch.Database.Initialize;
+   Codesearch.Database.Open (Read_Only => False);
    Codesearch.Web.Do_Request;
    Codesearch.Database.Close;
 end Main;

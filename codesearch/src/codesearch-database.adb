@@ -36,19 +36,23 @@ package body Codesearch.Database is
       Sqlite.Close (DB);
    end Create;
 
-   procedure Initialize is
+   procedure Open
+      (Read_Only : Boolean := True)
+   is
    begin
       Sqlite.Initialize;
       DB := Sqlite.Open (Database_Path,
-         (READONLY => False,
+         (READONLY => Read_Only,
           NOMUTEX  => True,
           others   => False));
       if not Sqlite.Is_Open (DB) then
          raise Program_Error with "Unable to open index.db";
       end if;
       Select_Stmt := Sqlite.Prepare (DB, Select_Query);
-      Insert_Stmt := Sqlite.Prepare (DB, Insert_Query);
-   end Initialize;
+      if not Read_Only then
+         Insert_Stmt := Sqlite.Prepare (DB, Insert_Query);
+      end if;
+   end Open;
 
    procedure Search
       (Query   : Unicode;
@@ -128,9 +132,12 @@ package body Codesearch.Database is
    end Add;
 
    procedure Close is
+      use type Sqlite.Statement;
    begin
       Sqlite.Finalize (DB, Select_Stmt);
-      Sqlite.Finalize (DB, Insert_Stmt);
+      if Insert_Stmt /= null then
+         Sqlite.Finalize (DB, Insert_Stmt);
+      end if;
       Sqlite.Close (DB);
    end Close;
 
