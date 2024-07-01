@@ -2,7 +2,7 @@ with Sqlite;
 
 package body Codesearch.Database is
 
-   Database_Path : constant String := "/home/synack/src/ada-search/codesearch/index.db";
+   Database_Path : constant String := "/home/synack/src/codesearch/index.db";
 
    Select_Query : constant String :=
       "SELECT crate, filename, path, rank FROM f WHERE text MATCH ? GROUP BY crate, filename ORDER BY rank LIMIT 250";

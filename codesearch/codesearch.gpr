@@ -5,7 +5,7 @@ project Codesearch is
    for Object_Dir use "obj/" & Codesearch_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
-   for Main use ("build_index.adb", "index.adb");
+   for Main use ("build_index.adb", "index.adb", "source_highlight.adb");
 
    package Compiler is
       for Default_Switches ("Ada") use Codesearch_Config.Ada_Compiler_Switches & (
@@ -20,6 +20,7 @@ project Codesearch is
 
    package Builder is
       for Executable ("index.adb") use "index.cgi";
+      for Executable ("source_highlight.adb") use "source_highlight.cgi";
    end Builder;
 
    package Install is

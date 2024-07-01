@@ -7,7 +7,7 @@ with Ada.Strings.Fixed;
 with Codesearch.Database;
 
 procedure Build_Index is
-   Base_Dir : constant String := "../source/alire-20240227/";
+   Base_Dir : constant String := "source/alire-20240227/";
 
    function Read_File
       (Path : String)
