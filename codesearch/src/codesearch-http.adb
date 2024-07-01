@@ -62,4 +62,18 @@ package body Codesearch.HTTP is
       Ada.Text_IO.Put (Data);
    end Put;
 
+   procedure Put
+      (Data : Codesearch.Strings.UTF8)
+   is
+   begin
+      Put (String (Data));
+   end Put;
+
+   procedure Put
+      (Data : Codesearch.Strings.Unicode)
+   is
+   begin
+      Put (Codesearch.Strings.Encode (Data));
+   end Put;
+
 end Codesearch.HTTP;

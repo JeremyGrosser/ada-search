@@ -1,3 +1,5 @@
+with Codesearch.Strings;
+
 package Codesearch.HTTP is
 
    --  Request
@@ -23,6 +25,6 @@ package Codesearch.HTTP is
        Message : String);
 
    procedure Put
-      (Data : String);
+      (Data : Codesearch.Strings.Unicode);
 
 end Codesearch.HTTP;

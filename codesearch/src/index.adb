@@ -1,9 +1,8 @@
-with Ada.Strings.Fixed;
-
 with Codesearch.HTTP;
 with Codesearch.Database;
 with Codesearch.Strings;
 with Codesearch.File;
+with Codesearch.Template;
 
 with Codesearch_Config;
 with Resources;
@@ -18,6 +17,7 @@ procedure Index is
    package DB renames Codesearch.Database;
    package Str renames Codesearch.Strings;
    package File renames Codesearch.File;
+   package Template renames Codesearch.Template;
 
    P : constant String := URI.Normalize_Path (HTTP.Path);
    Q : constant String := HTTP.Query_Parameter ("q");
@@ -35,35 +35,39 @@ begin
          DB.Close;
          if Last > 0 then
             HTTP.Set_Status (200, "OK");
-            HTTP.Set_Header ("Content-Type", "text/plain;charset=utf-8");
-
-            for Result of Results (1 .. Last) loop
-               HTTP.Put (String (Str.Encode (Result.Crate)));
-               HTTP.Put (" ");
-               HTTP.Put (String (Str.Encode (Result.Filename)));
-               HTTP.Put (" ");
-               HTTP.Put (String (Str.Encode (Result.Path)));
-               HTTP.Put ("" & ASCII.LF);
-            end loop;
+            HTTP.Set_Header ("Content-Type", "text/html;charset=utf-8");
+            declare
+               use Str.Unicode_Maps;
+               Values : Map := Empty_Map;
+               Head : constant Str.Unicode := File.Read_Unicode (Share.Resource_Path & "head.html");
+               Tail : constant Str.Unicode := File.Read_Unicode (Share.Resource_Path & "tail.html");
+            begin
+               Insert (Values, "query", Str.Decode (Str.UTF8 (Q)));
+               HTTP.Put (Template.Render (Head, Values));
+               for Result of Results (1 .. Last) loop
+                  HTTP.Put ("<div class=""result"">");
+                  HTTP.Put (Str.To_Unicode (Result.Crate));
+                  HTTP.Put (" <a href=""");
+                  HTTP.Put (Str.To_Unicode (Result.Path));
+                  HTTP.Put (".html"">");
+                  HTTP.Put (Str.To_Unicode (Result.Filename));
+                  HTTP.Put ("</a></div>" & Str.LF);
+               end loop;
+               HTTP.Put (Tail);
+            end;
          else
             HTTP.Set_Status (404, "Not Found");
             HTTP.Set_Header ("Content-Type", "text/plain;charset=utf-8");
-            HTTP.Put ("404 Not Found" & ASCII.LF);
+            HTTP.Put ("404 Not Found" & Str.LF);
          end if;
       end;
    elsif P = "/" then
-      declare
-         Filename : constant String := Share.Resource_Path & "static/index.html";
-         Text     : String (1 .. File.Length (Filename));
-      begin
-         File.Read (Filename, Text);
-         HTTP.Set_Status (200, "OK");
-         HTTP.Set_Header ("Content-Type", "text/html;charset=utf-8");
-         HTTP.Put (Text);
-      end;
+      HTTP.Set_Status (200, "OK");
+      HTTP.Set_Header ("Content-Type", "text/html;charset=utf-8");
+      HTTP.Put (File.Read_Unicode (Share.Resource_Path & "static/index.html"));
    else
       HTTP.Set_Status (404, "Not Found");
       HTTP.Set_Header ("Content-Type", "text/plain;charset=utf-8");
-      HTTP.Put ("404 Not Found" & ASCII.LF);
+      HTTP.Put ("404 Not Found" & Str.LF);
    end if;
 end Index;

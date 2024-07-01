@@ -1,5 +1,6 @@
 with Ada.Strings.Wide_Wide_Unbounded;
 with Ada.Strings.UTF_Encoding;
+with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Ada.Strings;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers;
@@ -76,5 +77,7 @@ package Codesearch.Strings is
    function Encode
       (Str : Unbounded_Unicode)
       return UTF8;
+
+   LF : constant Unicode := Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Decode (String'("" & ASCII.LF));
 
 end Codesearch.Strings;

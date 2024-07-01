@@ -1,4 +1,3 @@
-with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Ada.Strings.Wide_Wide_Fixed;
 with Ada.Strings.Hash;
 
