@@ -19,7 +19,7 @@ procedure Source_Highlight is
    package Template renames Codesearch.Template;
 
    P : constant String := URI.Normalize_Path (HTTP.Path);
-   Filename : constant String := "/home/synack/src/codesearch" & P (P'First .. P'Last - 5);
+   Filename : constant String := "/home/synack/src/ada-search/codesearch" & P (P'First .. P'Last - 5);
 begin
    if File.Exists (Filename) then
       declare
