@@ -5,9 +5,12 @@ package body Codesearch.Database is
    Database_Path : constant String := "/home/synack/src/ada-search/codesearch/index.db";
 
    Select_Query : constant String :=
-      "SELECT crate, filename, path, rank FROM f WHERE text MATCH ? GROUP BY crate, filename ORDER BY rank LIMIT 250";
+      "SELECT rowid, crate, path, filename, hash, rank FROM f " &
+      "WHERE text MATCH ? GROUP BY crate, filename ORDER BY rank LIMIT 250";
+   Select_Hash_Query : constant String :=
+      "SELECT hash FROM f WHERE path=? LIMIT 1";
    Insert_Query : constant String :=
-      "INSERT INTO f(rowid, crate, path, filename, text) VALUES (?, ?, ?, ?, ?)";
+      "INSERT INTO f(rowid, crate, path, filename, hash, text) VALUES (?, ?, ?, ?, ?, ?)";
 
    Select_Stmt : Sqlite.Statement;
    Insert_Stmt : Sqlite.Statement;
@@ -15,7 +18,7 @@ package body Codesearch.Database is
 
    procedure Create is
       Query : constant String :=
-         "CREATE VIRTUAL TABLE f USING fts5(crate, path, filename, text)";
+         "CREATE VIRTUAL TABLE f USING fts5(crate, path, filename, hash, text)";
       Stmt : Sqlite.Statement;
       use type Sqlite.Result_Code;
       Status : Sqlite.Result_Code;
@@ -94,10 +97,12 @@ package body Codesearch.Database is
          Status := Sqlite.Step (DB, Select_Stmt);
          exit when Status /= Sqlite.SQLITE_ROW;
          Results (I) :=
-            (Crate      => To_Unbounded (Decode (UTF8 (Sqlite.To_String (Select_Stmt, 0)))),
-             Filename   => To_Unbounded (Decode (UTF8 (Sqlite.To_String (Select_Stmt, 1)))),
+            (Id         => Natural (Sqlite.To_Integer (Select_Stmt, 0)),
+             Crate      => To_Unbounded (Decode (UTF8 (Sqlite.To_String (Select_Stmt, 1)))),
              Path       => To_Unbounded (Decode (UTF8 (Sqlite.To_String (Select_Stmt, 2)))),
-             Rank       => Sqlite.To_Integer (Select_Stmt, 3));
+             Filename   => To_Unbounded (Decode (UTF8 (Sqlite.To_String (Select_Stmt, 3)))),
+             Hash       => To_Unbounded (Decode (UTF8 (Sqlite.To_String (Select_Stmt, 4)))),
+             Rank       => Sqlite.To_Integer (Select_Stmt, 5));
          Last := I;
       end loop;
 
@@ -109,10 +114,37 @@ package body Codesearch.Database is
       end case;
    end Search;
 
+   function Get_Hash
+      (Path : String)
+      return String
+   is
+      use type Sqlite.Result_Code;
+      Status : Sqlite.Result_Code;
+      Stmt   : Sqlite.Statement := Sqlite.Prepare (DB, Select_Hash_Query);
+   begin
+      Sqlite.Reset (DB, Stmt);
+      Sqlite.Bind_Text (DB, Stmt, 1, Path);
+      Status := Sqlite.Step (DB, Stmt);
+      if Status = Sqlite.SQLITE_ROW then
+         declare
+            Hash : constant String := Sqlite.To_String (Stmt, 0);
+         begin
+            Sqlite.Finalize (DB, Stmt);
+            return Hash;
+         end;
+      elsif Status = Sqlite.SQLITE_DONE then
+         Sqlite.Finalize (DB, Stmt);
+         return "";
+      else
+         Sqlite.Finalize (DB, Stmt);
+         raise Program_Error with "Select hash returned error: " & Status'Image;
+      end if;
+   end Get_Hash;
+
    Insert_Row_Id : Natural := 0;
 
    procedure Add
-      (Crate, Path, Filename, Text : String)
+      (Crate, Path, Filename, Hash, Text : String)
    is
       use type Sqlite.Result_Code;
       Status : Sqlite.Result_Code;
@@ -122,7 +154,8 @@ package body Codesearch.Database is
       Sqlite.Bind_Text (DB, Insert_Stmt, 2, Crate);
       Sqlite.Bind_Text (DB, Insert_Stmt, 3, Path);
       Sqlite.Bind_Text (DB, Insert_Stmt, 4, Filename);
-      Sqlite.Bind_Text (DB, Insert_Stmt, 5, Text);
+      Sqlite.Bind_Text (DB, Insert_Stmt, 5, Hash);
+      Sqlite.Bind_Text (DB, Insert_Stmt, 6, Text);
       Status := Sqlite.Step (DB, Insert_Stmt);
       if Status /= Sqlite.SQLITE_DONE then
          raise Program_Error with "Insert failed with " & Status'Image;

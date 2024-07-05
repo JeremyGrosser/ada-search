@@ -1,7 +1,7 @@
 package Codesearch.Syntax is
 
    function Highlight
-      (Filename : String)
+      (Text : String)
       return String;
 
 end Codesearch.Syntax;

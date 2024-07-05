@@ -4,7 +4,7 @@ with AAA.Strings;
 package body Codesearch.Syntax is
 
    function Highlight
-      (Filename : String)
+      (Text : String)
       return String
    is
       use AAA.Strings;
@@ -14,9 +14,8 @@ package body Codesearch.Syntax is
       Cmd := Cmd & "pygmentize" &
          "-f" & "html" &
          "-l" & "ada" &
-         "-O" & "style=tango,linenos=1,cssclass=source" &
-         Filename;
-      Result := AAA.Processes.Run (Cmd);
+         "-O" & "style=tango,linenos=1,cssclass=source";
+      Result := AAA.Processes.Run (Cmd, Input => Text);
       return Flatten (Result.Output, ASCII.LF);
    end Highlight;
 end Codesearch.Syntax;

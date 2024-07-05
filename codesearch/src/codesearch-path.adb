@@ -1,4 +1,3 @@
-with Ada.Containers.Indefinite_Vectors;
 with Ada.Strings.Fixed;
 with Ada.Strings;
 
@@ -76,52 +75,5 @@ package body Codesearch.Path is
          end;
       end if;
    end Dirname;
-
-   package String_Vectors is new Ada.Containers.Indefinite_Vectors
-      (Index_Type   => Positive,
-       Element_Type => String);
-
-   function Split
-      (P : String)
-      return String_Vectors.Vector
-   is
-      use String_Vectors;
-      V : Vector;
-      First : Natural := P'First;
-   begin
-      for I in P'Range loop
-         if P (I) = Sep then
-            Append (V, P (First .. I - 1));
-            First := I + 1;
-         end if;
-      end loop;
-      if First <= P'Last then
-         Append (V, P (First .. P'Last));
-      end if;
-      return V;
-   end Split;
-
-   function Join
-      (V : String_Vectors.Vector;
-       Delimiter : Character)
-       return String
-   is
-      Length : Natural := 0;
-   begin
-      for Component of V loop
-         Length := Length + Component'Length + 1;
-      end loop;
-      declare
-         S : String (1 .. Length);
-         I : Natural := S'First;
-      begin
-         for Component of V loop
-            S (I .. I + Component'Length - 1) := Component;
-            S (I + Component'Length) := Sep;
-            I := I + Component'Length + 1;
-         end loop;
-         return S;
-      end;
-   end Join;
 
 end Codesearch.Path;

@@ -4,3 +4,5 @@
 /config/
 *.swp
 index.db*
+source
+blobstore

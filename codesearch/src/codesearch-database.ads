@@ -3,9 +3,11 @@ with Codesearch.Strings; use Codesearch.Strings;
 package Codesearch.Database is
 
    type Search_Result is record
+      Id       : Natural;
       Crate    : Unbounded_Unicode;
-      Filename : Unbounded_Unicode;
       Path     : Unbounded_Unicode;
+      Filename : Unbounded_Unicode;
+      Hash     : Unbounded_Unicode;
       Rank     : Integer;
    end record;
 
@@ -22,8 +24,12 @@ package Codesearch.Database is
        Results : out Search_Results;
        Last    : out Natural);
 
+   function Get_Hash
+      (Path : String)
+      return String;
+
    procedure Add
-      (Crate, Path, Filename, Text : String);
+      (Crate, Path, Filename, Hash, Text : String);
 
    procedure Close;
 

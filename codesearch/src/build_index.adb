@@ -5,6 +5,9 @@ with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 
 with Codesearch.Database;
+with Codesearch.Blobstore;
+with SHA3;
+with Hex_Format_8;
 
 procedure Build_Index is
    Base_Dir : constant String := "source/alire-20240227/";
@@ -24,6 +27,37 @@ procedure Build_Index is
       return Text;
    end Read_File;
 
+   function To_String
+      (Digest : SHA3.SHA3_256.Digest_Type)
+      return String
+   is
+      use Hex_Format_8;
+      S : String (1 .. Digest'Length * 2);
+      I : Positive := S'First;
+   begin
+      for D of Digest loop
+         S (I .. I + 1) := Hex (D);
+         I := I + 2;
+      end loop;
+      return S;
+   end To_String;
+
+   function Content_Hash
+      (Text : String)
+      return String
+   is
+      use SHA3.SHA3_256;
+      Input  : Byte_Array (1 .. Text'Length)
+         with Import, Address => Text'Address;
+      Digest : Digest_Type;
+      Ctx    : Context;
+   begin
+      Init (Ctx);
+      Update (Ctx, Input);
+      Final (Ctx, Digest);
+      return To_String (Digest);
+   end Content_Hash;
+
    procedure Index_File
       (Full_Name : String)
    is
@@ -33,12 +67,20 @@ procedure Build_Index is
          declare
             Trimmed : constant String := Full_Name (Full_Name'First + Base_Dir'Length .. Full_Name'Last);
             Crate   : constant String := Trimmed (Trimmed'First .. Ada.Strings.Fixed.Index (Trimmed, "/") - 1);
+            Text    : constant String := Read_File (Full_Name);
+            Hash    : constant String := Content_Hash (Text);
          begin
             Codesearch.Database.Add
                (Crate    => Crate,
                 Path     => Full_Name,
                 Filename => Simple_Name (Full_Name),
-                Text     => Read_File (Full_Name));
+                Hash     => Hash,
+                Text     => Text);
+            if not Codesearch.Blobstore.Exists (Hash) then
+               Codesearch.Blobstore.Put
+                  (Id   => Hash,
+                   Data => Text);
+            end if;
          end;
       end if;
    end Index_File;

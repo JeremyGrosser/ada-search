@@ -22,3 +22,9 @@ sqlite3 = { url="https://github.com/JeremyGrosser/sqlite3_binding.git" }
 
 [build-profiles]
 "*" = "development"
+
+[[depends-on]]
+hex_format = "~0.1.0"
+
+[[depends-on]]
+libkeccak = "^3.0.0"
