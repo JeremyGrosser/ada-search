@@ -9,8 +9,7 @@ project Codesearch is
    for Main use (
       "build_index.adb",
       "fill_blobstore.adb",
-      "index.adb",
-      "source_highlight.adb"
+      "main.adb"
    );
 
    package Compiler is
@@ -31,8 +30,7 @@ project Codesearch is
    end Binder;
 
    package Builder is
-      for Executable ("index.adb") use "index.cgi";
-      for Executable ("source_highlight.adb") use "source_highlight.cgi";
+      for Executable ("main.adb") use "codesearch.cgi";
    end Builder;
 
    package Install is

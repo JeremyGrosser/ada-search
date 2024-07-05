@@ -9,15 +9,18 @@ package body Codesearch.HTTP is
    End_Headers : Boolean := False;
 
    function Method
+      (This : Request)
       return String
    is (Env.Value ("REQUEST_METHOD", ""));
 
    function Path
+      (This : Request)
       return String
    is (URI.Normalize_Path (Env.Value ("DOCUMENT_URI", "")));
 
    function Query_Parameter
-      (Key     : String;
+      (This    : Request;
+       Key     : String;
        Default : String := "")
        return String
    is
@@ -29,7 +32,8 @@ package body Codesearch.HTTP is
    end Query_Parameter;
 
    procedure Set_Header
-      (Key, Value : String)
+      (This : in out Response;
+       Key, Value : String)
    is
    begin
       Ada.Text_IO.Put (Key);
@@ -39,7 +43,8 @@ package body Codesearch.HTTP is
    end Set_Header;
 
    procedure Set_Status
-      (Code    : HTTP_Status;
+      (This    : in out Response;
+       Code    : HTTP_Status;
        Message : String)
    is
    begin
@@ -52,7 +57,8 @@ package body Codesearch.HTTP is
    end Set_Status;
 
    procedure Put_Raw
-      (Data : String)
+      (This : in out Response;
+       Data : String)
    is
    begin
       if not End_Headers then
@@ -63,17 +69,19 @@ package body Codesearch.HTTP is
    end Put_Raw;
 
    procedure Put
-      (Data : Codesearch.Strings.UTF8)
+      (This : in out Response;
+       Data : Codesearch.Strings.UTF8)
    is
    begin
-      Put_Raw (String (Data));
+      Put_Raw (This, String (Data));
    end Put;
 
    procedure Put
-      (Data : Codesearch.Strings.Unicode)
+      (This : in out Response;
+       Data : Codesearch.Strings.Unicode)
    is
    begin
-      Put (Codesearch.Strings.Encode (Data));
+      Put (This, Codesearch.Strings.Encode (Data));
    end Put;
 
 end Codesearch.HTTP;

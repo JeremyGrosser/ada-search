@@ -4,32 +4,47 @@ package Codesearch.HTTP
    with Elaborate_Body
 is
 
+   type Request is private;
+
    --  Request
    function Method
+      (This : Request)
       return String;
 
    function Path
+      (This : Request)
       return String;
 
    function Query_Parameter
-      (Key     : String;
+      (This    : Request;
+       Key     : String;
        Default : String := "")
        return String;
 
-   --  Response
+   type Response is private;
+
    procedure Set_Header
-      (Key, Value : String);
+      (This : in out Response;
+       Key, Value : String);
 
    type HTTP_Status is new Integer range 100 .. 599;
 
    procedure Set_Status
-      (Code    : HTTP_Status;
+      (This    : in out Response;
+       Code    : HTTP_Status;
        Message : String);
 
    procedure Put
-      (Data : Codesearch.Strings.Unicode);
+      (This : in out Response;
+       Data : Codesearch.Strings.Unicode);
 
    procedure Put_Raw
-      (Data : String);
+      (This : in out Response;
+       Data : String);
+
+private
+
+   type Request is null record;
+   type Response is null record;
 
 end Codesearch.HTTP;
