@@ -1,10 +1,6 @@
-with Ada.Environment_Variables;
-with Ada.Text_IO;
-with GNAT.CGI;
 with URI;
 
 package body Codesearch.HTTP is
-   package Env renames Ada.Environment_Variables;
 
    End_Headers : Boolean := False;
 

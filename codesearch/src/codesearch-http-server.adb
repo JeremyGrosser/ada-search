@@ -1,5 +1,6 @@
 with Ada.Streams; use Ada.Streams;
 with GNAT.Sockets; use GNAT.Sockets;
+with Codesearch.Service;
 
 package body Codesearch.HTTP.Server is
 
@@ -44,7 +45,12 @@ package body Codesearch.HTTP.Server is
          exit when Req.End_Headers > 0;
       end loop;
 
-      --  TODO handle request
+      declare
+         Resp : Response;
+      begin
+         Resp.Socket := Sock;
+         Codesearch.Service.Handle_Request (Req, Resp);
+      end;
       Close_Socket (Sock);
    end Serve_Connection;
 

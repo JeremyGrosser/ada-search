@@ -1,5 +1,6 @@
 with Codesearch.Strings;
 private with Ada.Streams;
+private with GNAT.Sockets;
 
 package Codesearch.HTTP
    with Elaborate_Body
@@ -53,6 +54,8 @@ private
       End_Headers : Ada.Streams.Stream_Element_Offset := 0;
    end record;
 
-   type Response is null record;
+   type Response is record
+      Socket : GNAT.Sockets.Socket_Type;
+   end record;
 
 end Codesearch.HTTP;
