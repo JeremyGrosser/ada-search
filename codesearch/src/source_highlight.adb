@@ -5,8 +5,6 @@ with Codesearch.Template;
 with Codesearch.Syntax;
 with Codesearch.Database;
 with Codesearch.Blobstore;
-with Ada.Directories;
-with Resources;
 with URI;
 
 procedure Source_Highlight is
