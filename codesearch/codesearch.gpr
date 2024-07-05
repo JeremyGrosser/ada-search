@@ -18,7 +18,11 @@ project Codesearch is
          "-gnatyM120",
          "-gnatwJ",
          "-ffunction-sections",
-         "-fdata-sections"
+         "-fdata-sections",
+	      "-fPIE"
+      );
+      for Switches ("C") use (
+         "-fPIE"
       );
    end Compiler;
 
@@ -36,7 +40,14 @@ project Codesearch is
    end Install;
 
    package Linker is
-      for Switches ("Ada") use ("-lm");
+      for Switches ("Ada") use (
+         "-lm",
+         "-Wl,-z,relro",
+         "-Wl,-z,now",
+         "-Wl,-z,noexecstack",
+         "-Wl,-z,separate-code",
+         "-Wl,-gc-sections"
+      );
    end Linker;
 
 end Codesearch;
