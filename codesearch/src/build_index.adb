@@ -1,4 +1,3 @@
-pragma Ada_2022;
 with Ada.Directories; use Ada.Directories;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;

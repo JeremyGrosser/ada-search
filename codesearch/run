@@ -2,4 +2,6 @@
 if [ -e fastcgi.sock ]; then
     rm -f fastcgi.sock
 fi
-exec fcgiwrap -s unix:fastcgi.sock
+nohup /usr/sbin/fcgiwrap -s unix:fastcgi.sock &
+sleep 1
+chmod 777 fastcgi.sock

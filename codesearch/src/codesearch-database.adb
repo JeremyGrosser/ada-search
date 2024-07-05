@@ -2,7 +2,7 @@ with Sqlite;
 
 package body Codesearch.Database is
 
-   Database_Path : constant String := "/home/synack/src/ada-search/codesearch/index.db";
+   Database_Path : constant String := "/home/admin/index.db";
 
    Insert_FTS_Query : constant String :=
       "INSERT INTO f(rowid, crate, path, filename, hash, text) VALUES (?, ?, ?, ?, ?, ?)";

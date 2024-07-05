@@ -42,6 +42,7 @@ project Codesearch is
    package Linker is
       for Switches ("Ada") use (
          "-lm",
+         "-ldl",
          "-Wl,-z,relro",
          "-Wl,-z,now",
          "-Wl,-z,noexecstack",

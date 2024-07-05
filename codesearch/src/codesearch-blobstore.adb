@@ -4,7 +4,7 @@ with Ada.Streams.Stream_IO;
 
 package body Codesearch.Blobstore is
 
-   Root : constant String := "blobstore/";
+   Root : constant String := "/home/admin/blobstore/";
 
    function To_Path
       (Id : String)
@@ -12,7 +12,7 @@ package body Codesearch.Blobstore is
    is
       use Codesearch.Path;
    begin
-      return "./" & Join (Join (Join (Root, "" & Id (Id'First)), "" & Id (Id'First + 1)), Id (Id'First + 2 .. Id'Last));
+      return Join (Join (Join (Root, "" & Id (Id'First)), "" & Id (Id'First + 1)), Id (Id'First + 2 .. Id'Last));
    end To_Path;
 
    procedure Makedirs

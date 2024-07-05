@@ -17,7 +17,7 @@ procedure Source_Highlight is
    P        : constant Unicode := Decode (UTF8 (URI.Normalize_Path (HTTP.Path)));
    Basename : constant Unicode := Remove_Prefix (Remove_Suffix (P, ".html"), "/");
 begin
-   Ada.Directories.Set_Directory ("/home/synack/src/ada-search/codesearch");
+   Ada.Directories.Set_Directory ("/home/admin/ada-search2/codesearch");
 
    Codesearch.Database.Open (Read_Only => True);
    declare
