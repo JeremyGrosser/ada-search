@@ -33,8 +33,9 @@ package body Codesearch.Database is
    begin
       Sqlite.Initialize;
       DB := Sqlite.Open (Database_Path,
-         (CREATE => True,
-          others => False));
+         (CREATE  => True,
+          WAL     => True,
+          others  => False));
       if not Sqlite.Is_Open (DB) then
          raise Program_Error with "Unable to open index.db";
       end if;
@@ -63,6 +64,7 @@ package body Codesearch.Database is
       DB := Sqlite.Open (Database_Path,
          (READONLY => Read_Only,
           NOMUTEX  => True,
+          WAL      => True,
           others   => False));
       if not Sqlite.Is_Open (DB) then
          raise Program_Error with "Unable to open index.db";
