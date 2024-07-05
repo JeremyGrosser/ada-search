@@ -43,11 +43,13 @@ begin
             Insert (Env, "code", Decode (UTF8 (HL)));
             HTTP.Set_Status (200, "OK");
             HTTP.Set_Header ("Content-Type", "text/html;charset=utf-8");
+            HTTP.Set_Header ("Cache-Control", "max-age=2592000");
             HTTP.Put (Template.Render (T, Env));
          end;
       else
          HTTP.Set_Status (200, "OK");
          HTTP.Set_Header ("Content-Type", "text/plain;charset=utf-8");
+         HTTP.Set_Header ("Cache-Control", "max-age=2592000");
          HTTP.Put_Raw (Codesearch.Blobstore.Get (Hash));
       end if;
    end;

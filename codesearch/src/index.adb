@@ -31,6 +31,7 @@ begin
          if Last > 0 then
             HTTP.Set_Status (200, "OK");
             HTTP.Set_Header ("Content-Type", "text/html;charset=utf-8");
+            HTTP.Set_Header ("Cache-Control", "max-age=86400");
             declare
                use Str.Unicode_Maps;
                Values : Map := Empty_Map;
@@ -64,6 +65,7 @@ begin
    elsif P = "/" then
       HTTP.Set_Status (200, "OK");
       HTTP.Set_Header ("Content-Type", "text/html;charset=utf-8");
+      HTTP.Set_Header ("Cache-Control", "max-age=86400");
       HTTP.Put (File.Read_Resource ("static/index.html"));
    else
       HTTP.Set_Status (404, "Not Found");
