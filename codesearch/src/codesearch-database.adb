@@ -115,7 +115,7 @@ package body Codesearch.Database is
    end Search;
 
    function Get_Hash
-      (Path : String)
+      (Path : Unicode)
       return String
    is
       use type Sqlite.Result_Code;
@@ -123,7 +123,7 @@ package body Codesearch.Database is
       Stmt   : Sqlite.Statement := Sqlite.Prepare (DB, Select_Hash_Query);
    begin
       Sqlite.Reset (DB, Stmt);
-      Sqlite.Bind_Text (DB, Stmt, 1, Path);
+      Sqlite.Bind_Text (DB, Stmt, 1, String (Encode (Path)));
       Status := Sqlite.Step (DB, Stmt);
       if Status = Sqlite.SQLITE_ROW then
          declare

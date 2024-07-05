@@ -25,7 +25,7 @@ package Codesearch.Database is
        Last    : out Natural);
 
    function Get_Hash
-      (Path : String)
+      (Path : Unicode)
       return String;
 
    procedure Add

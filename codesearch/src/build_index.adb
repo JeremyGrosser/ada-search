@@ -58,11 +58,20 @@ procedure Build_Index is
       return To_String (Digest);
    end Content_Hash;
 
+   function Ends_With
+      (S : String;
+       Suffix : String)
+       return Boolean
+   is (S'Length >= Suffix'Length and then S (S'Last - Suffix'Length + 1 .. S'Last) = Suffix);
+
    procedure Index_File
       (Full_Name : String)
    is
    begin
-      if Full_Name'Length >= 4 and then Full_Name (Full_Name'Last - 3 .. Full_Name'Last) = ".ads" then
+      if         Ends_With (Full_Name, ".ads")
+         or else Ends_With (Full_Name, ".adb")
+         or else Ends_With (Full_Name, ".ada")
+      then
          --  Put_Line (Full_Name);
          declare
             Trimmed : constant String := Full_Name (Full_Name'First + Base_Dir'Length .. Full_Name'Last);

@@ -51,7 +51,7 @@ package body Codesearch.HTTP is
       Ada.Text_IO.New_Line;
    end Set_Status;
 
-   procedure Put
+   procedure Put_Raw
       (Data : String)
    is
    begin
@@ -60,13 +60,13 @@ package body Codesearch.HTTP is
          End_Headers := True;
       end if;
       Ada.Text_IO.Put (Data);
-   end Put;
+   end Put_Raw;
 
    procedure Put
       (Data : Codesearch.Strings.UTF8)
    is
    begin
-      Put (String (Data));
+      Put_Raw (String (Data));
    end Put;
 
    procedure Put

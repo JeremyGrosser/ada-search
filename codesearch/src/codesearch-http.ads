@@ -27,4 +27,7 @@ package Codesearch.HTTP is
    procedure Put
       (Data : Codesearch.Strings.Unicode);
 
+   procedure Put_Raw
+      (Data : String);
+
 end Codesearch.HTTP;

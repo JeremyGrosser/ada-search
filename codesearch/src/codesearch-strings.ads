@@ -32,6 +32,26 @@ package Codesearch.Strings is
        From    : Positive)
        return Natural;
 
+   function Starts_With
+      (Str    : Unicode;
+       Prefix : Unicode)
+       return Boolean;
+
+   function Ends_With
+      (Str    : Unicode;
+       Suffix : Unicode)
+       return Boolean;
+
+   function Remove_Prefix
+      (Str : Unicode;
+       Prefix : Unicode)
+       return Unicode;
+
+   function Remove_Suffix
+      (Str    : Unicode;
+       Suffix : Unicode)
+       return Unicode;
+
    function Replace
       (Str, Match, Subst : Unicode)
        return Unicode;
