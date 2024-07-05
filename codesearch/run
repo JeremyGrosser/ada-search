@@ -2,4 +2,4 @@
 if [ -e fastcgi.sock ]; then
     rm -f fastcgi.sock
 fi
-exec fcgiwrap -c 32 -s unix:fastcgi.sock
+exec fcgiwrap -s unix:fastcgi.sock
