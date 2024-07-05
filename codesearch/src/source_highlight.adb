@@ -6,7 +6,7 @@ with Codesearch.Syntax;
 with Codesearch.Database;
 with Codesearch.Blobstore;
 with Ada.Directories;
-
+with Resources;
 with URI;
 
 procedure Source_Highlight is
@@ -17,8 +17,7 @@ procedure Source_Highlight is
    P        : constant Unicode := Decode (UTF8 (URI.Normalize_Path (HTTP.Path)));
    Basename : constant Unicode := Remove_Prefix (Remove_Suffix (P, ".html"), "/");
 begin
-   Ada.Directories.Set_Directory ("/home/admin/ada-search2/codesearch");
-
+   Codesearch.File.Set_Working_Directory;
    Codesearch.Database.Open (Read_Only => True);
    declare
       Hash : constant String := Codesearch.Database.Get_Hash (Basename);

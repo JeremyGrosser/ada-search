@@ -4,7 +4,7 @@ with Ada.Streams.Stream_IO;
 
 package body Codesearch.Blobstore is
 
-   Root : constant String := "/home/admin/blobstore/";
+   Root : constant String := "blobstore/";
 
    function To_Path
       (Id : String)

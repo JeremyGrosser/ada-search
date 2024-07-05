@@ -1,13 +1,12 @@
 with Ada.Directories; use Ada.Directories;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
-
 with Codesearch.Strings; use Codesearch.Strings;
 with Codesearch.Database;
 with Codesearch.Blobstore;
+with Codesearch.File;
 with SHA3;
 with Hex_Format_8;
-
 with Ada.Text_IO;
 
 procedure Fill_Blobstore is
@@ -119,6 +118,7 @@ procedure Fill_Blobstore is
       End_Search (Search);
    end Walk;
 begin
+   Codesearch.File.Set_Working_Directory;
    Codesearch.Database.Open (Read_Only => False);
    Walk (Base_Dir);
    Codesearch.Database.Close;

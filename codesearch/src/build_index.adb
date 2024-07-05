@@ -2,12 +2,11 @@ with Ada.Directories; use Ada.Directories;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
-
 with Codesearch.Database;
 with Codesearch.Blobstore;
+with Codesearch.File;
 with SHA3;
 with Hex_Format_8;
-
 with Ada.Text_IO;
 
 procedure Build_Index is
@@ -127,6 +126,7 @@ procedure Build_Index is
       End_Search (Search);
    end Walk;
 begin
+   Codesearch.File.Set_Working_Directory;
    Codesearch.Database.Create;
    Codesearch.Database.Open (Read_Only => False);
    Walk (Base_Dir);

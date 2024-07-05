@@ -1,11 +1,12 @@
 with Ada.Directories;
 with Ada.Streams.Stream_IO;
-with Resources;
-with Codesearch_Config;
 
 package body Codesearch.File is
-   package Share is new Resources
-      (Crate_Name => Codesearch_Config.Crate_Name);
+
+   procedure Set_Working_Directory is
+   begin
+      Ada.Directories.Set_Directory (Share.Prefix_Path);
+   end Set_Working_Directory;
 
    function Read_Unicode
       (Filename : String)

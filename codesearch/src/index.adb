@@ -4,7 +4,6 @@ with Codesearch.Database;
 with Codesearch.Strings;
 with Codesearch.File;
 with Codesearch.Template;
-
 with URI;
 
 procedure Index is
@@ -17,6 +16,7 @@ procedure Index is
    P : constant String := URI.Normalize_Path (HTTP.Path);
    Q : constant String := HTTP.Query_Parameter ("q");
 begin
+   Codesearch.File.Set_Working_Directory;
    if P = "/" and then Q'Length > 0 then
       declare
          Results  : DB.Search_Results (1 .. 250);
