@@ -1,4 +1,5 @@
 with Codesearch.Strings;
+private with Ada.Streams;
 
 package Codesearch.HTTP
    with Elaborate_Body
@@ -44,7 +45,14 @@ is
 
 private
 
-   type Request is null record;
+   Max_Request_Length : constant := 65536;
+
+   type Request is record
+      Item : Ada.Streams.Stream_Element_Array (1 .. Max_Request_Length);
+      Last : Ada.Streams.Stream_Element_Offset := 0;
+      End_Headers : Ada.Streams.Stream_Element_Offset := 0;
+   end record;
+
    type Response is null record;
 
 end Codesearch.HTTP;

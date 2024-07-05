@@ -4,6 +4,8 @@ with Index;
 with Source_Highlight;
 with URI;
 
+with Codesearch.HTTP.Server;
+
 procedure Main is
    package HTTP renames Codesearch.HTTP;
 
@@ -11,6 +13,9 @@ procedure Main is
    Response : HTTP.Response;
    P : constant Unicode := Decode (UTF8 (URI.Normalize_Path (HTTP.Path (Request))));
 begin
+   HTTP.Server.Bind;
+   HTTP.Server.Run;
+
    if P = "/" then
       Index (Request, Response);
    elsif Starts_With (P, "/source/") then
