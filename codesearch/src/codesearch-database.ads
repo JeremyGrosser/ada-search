@@ -28,6 +28,10 @@ package Codesearch.Database is
       (Path : Unicode)
       return String;
 
+   procedure Add_Hash
+      (Path : Unicode;
+       Hash : String);
+
    procedure Add
       (Crate, Path, Filename, Hash, Text : String);
 

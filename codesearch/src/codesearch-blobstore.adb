@@ -46,36 +46,23 @@ package body Codesearch.Blobstore is
       Close (File);
    end Put;
 
-   function Length
-      (Id : String)
-      return Natural
-   is (Natural (Ada.Directories.Size (To_Path (Id))));
-
    function Exists
       (Id : String)
       return Boolean
    is (Ada.Directories.Exists (To_Path (Id)));
 
-   procedure Get
-      (Id   : String;
-       Data : out String)
-   is
-      use Ada.Streams.Stream_IO;
-      Path : constant String := To_Path (Id);
-      File : File_Type;
-   begin
-      Open (File, In_File, Path);
-      String'Read (Stream (File), Data);
-      Close (File);
-   end Get;
-
    function Get
       (Id : String)
       return String
    is
-      Data : String (1 .. Length (Id));
+      use Ada.Streams.Stream_IO;
+      Path : constant String := To_Path (Id);
+      File : File_Type;
+      Data : String (1 .. Natural (Ada.Directories.Size (Path)));
    begin
-      Get (Id, Data);
+      Open (File, In_File, Path);
+      String'Read (Stream (File), Data);
+      Close (File);
       return Data;
    end Get;
 

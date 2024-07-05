@@ -2,8 +2,8 @@ pragma Ada_2022;
 with Ada.Directories; use Ada.Directories;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
-with Ada.Strings.Fixed;
 
+with Codesearch.Strings; use Codesearch.Strings;
 with Codesearch.Database;
 with Codesearch.Blobstore;
 with SHA3;
@@ -11,8 +11,8 @@ with Hex_Format_8;
 
 with Ada.Text_IO;
 
-procedure Build_Index is
-   Base_Dir : constant String := "source/alire-20240227/";
+procedure Fill_Blobstore is
+   Base_Dir : constant String := "source/";
 
    function Read_File
       (Path : String)
@@ -76,26 +76,18 @@ procedure Build_Index is
       then
          --  Put_Line (Full_Name);
          declare
-            Trimmed : constant String := Full_Name (Full_Name'First + Base_Dir'Length .. Full_Name'Last);
-            Crate   : constant String := Trimmed (Trimmed'First .. Ada.Strings.Fixed.Index (Trimmed, "/") - 1);
-            Text    : constant String := Read_File (Full_Name);
-            Hash    : constant String := Content_Hash (Text);
+            Text : constant String := Read_File (Full_Name);
+            Hash : constant String := Content_Hash (Text);
          begin
             if Text'Length = 0 then
                return;
             end if;
-
-            Codesearch.Database.Add
-               (Crate    => Crate,
-                Path     => Full_Name,
-                Filename => Simple_Name (Full_Name),
-                Hash     => Hash,
-                Text     => Text);
             if not Codesearch.Blobstore.Exists (Hash) then
                Codesearch.Blobstore.Put
                   (Id   => Hash,
                    Data => Text);
             end if;
+            Codesearch.Database.Add_Hash (Decode (UTF8 (Full_Name)), Hash);
          end;
       end if;
    end Index_File;
@@ -128,8 +120,7 @@ procedure Build_Index is
       End_Search (Search);
    end Walk;
 begin
-   Codesearch.Database.Create;
    Codesearch.Database.Open (Read_Only => False);
    Walk (Base_Dir);
    Codesearch.Database.Close;
-end Build_Index;
+end Fill_Blobstore;

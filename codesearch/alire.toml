@@ -16,15 +16,11 @@ sqlite3 = "^3.42.0"
 uri_mime = "^1.4.0"
 aaa = "~0.2.6"
 resources = "~0.1.0"
+hex_format = "~0.1.0"
+libkeccak = "^3.0.0"
+
+[build-switches]
+release.optimization = ["-gnatn2", "-march=native", "-O3"]
 
 [[pins]]
-sqlite3 = { url="https://github.com/JeremyGrosser/sqlite3_binding.git" }
-
-[build-profiles]
-"*" = "development"
-
-[[depends-on]]
-hex_format = "~0.1.0"
-
-[[depends-on]]
-libkeccak = "^3.0.0"
+sqlite3 = { path='../../sqlite3_binding' }

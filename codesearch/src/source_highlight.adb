@@ -10,7 +10,6 @@ with Codesearch_Config;
 with Resources;
 
 with Ada.Directories;
-with Ada.Wide_Wide_Text_IO; use Ada.Wide_Wide_Text_IO;
 
 with URI;
 
@@ -26,8 +25,6 @@ procedure Source_Highlight is
    Basename : constant Unicode := Remove_Prefix (Remove_Suffix (P, ".html"), "/");
 begin
    Ada.Directories.Set_Directory ("/home/synack/src/ada-search/codesearch");
-
-   Put_Line (Standard_Error, Basename);
 
    Codesearch.Database.Open (Read_Only => True);
    declare
