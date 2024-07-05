@@ -23,4 +23,4 @@ libkeccak = "^3.0.0"
 release.optimization = ["-gnatn2", "-march=native", "-O3"]
 
 [[pins]]
-sqlite3 = { path='../../sqlite3_binding' }
+sqlite3 = { url='https://github.com/JeremyGrosser/sqlite3_binding.git' }
