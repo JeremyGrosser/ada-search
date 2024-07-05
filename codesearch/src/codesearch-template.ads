@@ -1,6 +1,8 @@
 with Codesearch.Strings; use Codesearch.Strings;
 
-package Codesearch.Template is
+package Codesearch.Template
+   with Preelaborate
+is
 
    Template_Error : exception;
 

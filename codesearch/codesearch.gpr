@@ -16,7 +16,9 @@ project Codesearch is
    package Compiler is
       for Default_Switches ("Ada") use Codesearch_Config.Ada_Compiler_Switches & (
          "-gnatyM120",
-         "-gnatwJ"
+         "-gnatwJ",
+         "-ffunction-sections",
+         "-fdata-sections"
       );
    end Compiler;
 

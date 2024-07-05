@@ -1,6 +1,8 @@
 with Codesearch.Strings;
 
-package Codesearch.HTTP is
+package Codesearch.HTTP
+   with Elaborate_Body
+is
 
    --  Request
    function Method

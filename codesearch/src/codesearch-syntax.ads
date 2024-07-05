@@ -1,4 +1,6 @@
-package Codesearch.Syntax is
+package Codesearch.Syntax
+   with Elaborate_Body
+is
 
    function Highlight
       (Text : String)

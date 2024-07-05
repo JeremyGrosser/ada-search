@@ -1,11 +1,12 @@
 with Ada.Strings.Wide_Wide_Unbounded;
 with Ada.Strings.UTF_Encoding;
-with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Ada.Strings;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers;
 
-package Codesearch.Strings is
+package Codesearch.Strings
+   with Preelaborate
+is
 
    type UTF8 is new Ada.Strings.UTF_Encoding.UTF_8_String;
    subtype Unicode is Wide_Wide_String;
@@ -98,6 +99,7 @@ package Codesearch.Strings is
       (Str : Unbounded_Unicode)
       return UTF8;
 
-   LF : constant Unicode := Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Decode (String'("" & ASCII.LF));
+   function LF
+      return Unicode;
 
 end Codesearch.Strings;

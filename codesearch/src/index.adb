@@ -1,18 +1,13 @@
+with Ada.Strings.UTF_Encoding;
 with Codesearch.HTTP;
 with Codesearch.Database;
 with Codesearch.Strings;
 with Codesearch.File;
 with Codesearch.Template;
 
-with Codesearch_Config;
-with Resources;
-
 with URI;
 
 procedure Index is
-   package Share is new Resources
-      (Crate_Name => Codesearch_Config.Crate_Name);
-
    package HTTP renames Codesearch.HTTP;
    package DB renames Codesearch.Database;
    package Str renames Codesearch.Strings;
@@ -39,8 +34,8 @@ begin
             declare
                use Str.Unicode_Maps;
                Values : Map := Empty_Map;
-               Head : constant Str.Unicode := File.Read_Unicode (Share.Resource_Path & "head.html");
-               Tail : constant Str.Unicode := File.Read_Unicode (Share.Resource_Path & "tail.html");
+               Head : constant Str.Unicode := File.Read_Resource ("head.html");
+               Tail : constant Str.Unicode := File.Read_Resource ("tail.html");
             begin
                Insert (Values, "query", Str.Decode (Str.UTF8 (Q)));
                HTTP.Put (Template.Render (Head, Values));
@@ -60,11 +55,16 @@ begin
             HTTP.Set_Header ("Content-Type", "text/plain;charset=utf-8");
             HTTP.Put ("404 Not Found" & Str.LF);
          end if;
+      exception
+         when Ada.Strings.UTF_Encoding.Encoding_Error =>
+            HTTP.Set_Status (400, "Bad Request");
+            HTTP.Set_Header ("Content-Type", "text/plain;charset=utf-8");
+            HTTP.Put ("400 Bad Request" & Str.LF);
       end;
    elsif P = "/" then
       HTTP.Set_Status (200, "OK");
       HTTP.Set_Header ("Content-Type", "text/html;charset=utf-8");
-      HTTP.Put (File.Read_Unicode (Share.Resource_Path & "static/index.html"));
+      HTTP.Put (File.Read_Resource ("static/index.html"));
    else
       HTTP.Set_Status (404, "Not Found");
       HTTP.Set_Header ("Content-Type", "text/plain;charset=utf-8");

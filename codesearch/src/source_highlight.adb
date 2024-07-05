@@ -5,18 +5,11 @@ with Codesearch.Template;
 with Codesearch.Syntax;
 with Codesearch.Database;
 with Codesearch.Blobstore;
-
-with Codesearch_Config;
-with Resources;
-
 with Ada.Directories;
 
 with URI;
 
 procedure Source_Highlight is
-   package Share is new Resources
-      (Crate_Name => Codesearch_Config.Crate_Name);
-
    package HTTP renames Codesearch.HTTP;
    package File renames Codesearch.File;
    package Template renames Codesearch.Template;
@@ -40,7 +33,7 @@ begin
          declare
             use Codesearch.Strings.Unicode_Maps;
             Env  : Map := Empty_Map;
-            T    : constant Unicode := File.Read_Unicode (Share.Resource_Path & "highlight.html");
+            T    : constant Unicode := File.Read_Resource ("highlight.html");
             HL   : constant String := Codesearch.Syntax.Highlight (Codesearch.Blobstore.Get (Hash));
             Prefix : constant String := "source/alire-20240227/";
             Title  : constant Unicode := Basename (Basename'First + Prefix'Length .. Basename'Last);

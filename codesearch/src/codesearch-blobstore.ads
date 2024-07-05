@@ -1,4 +1,6 @@
-package Codesearch.Blobstore is
+package Codesearch.Blobstore
+   with Elaborate_Body
+is
 
    procedure Put
       (Id   : String;

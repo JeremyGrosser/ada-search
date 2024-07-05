@@ -1,6 +1,8 @@
 with Codesearch.Strings; use Codesearch.Strings;
 
-package Codesearch.Database is
+package Codesearch.Database
+   with Elaborate_Body
+is
 
    type Search_Result is record
       Id       : Natural;

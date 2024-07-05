@@ -1,2 +1,4 @@
-package Codesearch is
+package Codesearch
+   with Pure
+is
 end Codesearch;

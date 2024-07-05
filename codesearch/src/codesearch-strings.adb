@@ -1,4 +1,5 @@
 with Ada.Strings.Wide_Wide_Fixed;
+with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Ada.Strings.Hash;
 
 package body Codesearch.Strings is
@@ -128,5 +129,9 @@ package body Codesearch.Strings is
    begin
       return UTF8 (U8);
    end Encode;
+
+   function LF
+      return Unicode
+   is (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Decode (String'("" & ASCII.LF)));
 
 end Codesearch.Strings;
