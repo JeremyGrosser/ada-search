@@ -6,3 +6,4 @@
 index.db*
 source
 blobstore
+nohup.out

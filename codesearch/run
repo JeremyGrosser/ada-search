@@ -2,6 +2,6 @@
 if [ -e fastcgi.sock ]; then
     rm -f fastcgi.sock
 fi
+ulimit -s 131072
+umask 000
 nohup /usr/sbin/fcgiwrap -s unix:fastcgi.sock &
-sleep 1
-chmod 777 fastcgi.sock
