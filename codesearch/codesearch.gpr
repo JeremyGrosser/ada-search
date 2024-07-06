@@ -30,7 +30,7 @@ project Codesearch is
    end Binder;
 
    package Builder is
-      for Executable ("main.adb") use "codesearch.cgi";
+      for Executable ("main.adb") use "codesearch";
    end Builder;
 
    package Install is
