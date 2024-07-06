@@ -18,6 +18,7 @@ package body Codesearch.Database is
    Select_FTS_Stmt : Sqlite.Statement;
    Insert_FTS_Stmt : Sqlite.Statement;
 
+   Select_Hash_Stmt : Sqlite.Statement;
    Insert_Hash_Stmt : Sqlite.Statement;
 
    DB : Sqlite.Connection;
@@ -69,7 +70,10 @@ package body Codesearch.Database is
       if not Sqlite.Is_Open (DB) then
          raise Program_Error with "Unable to open index.db";
       end if;
+
       Select_FTS_Stmt := Sqlite.Prepare (DB, Select_FTS_Query);
+      Select_Hash_Stmt := Sqlite.Prepare (DB, Select_Hash_Query);
+
       if not Read_Only then
          Insert_FTS_Stmt := Sqlite.Prepare (DB, Insert_FTS_Query);
          Insert_Hash_Stmt := Sqlite.Prepare (DB, Insert_Hash_Query);
@@ -139,23 +143,22 @@ package body Codesearch.Database is
    is
       use type Sqlite.Result_Code;
       Status : Sqlite.Result_Code;
-      Stmt   : Sqlite.Statement := Sqlite.Prepare (DB, Select_Hash_Query);
    begin
-      Sqlite.Reset (DB, Stmt);
-      Sqlite.Bind_Text (DB, Stmt, 1, String (Encode (Path)));
-      Status := Sqlite.Step (DB, Stmt);
+      Sqlite.Reset (DB, Select_Hash_Stmt);
+      Sqlite.Bind_Text (DB, Select_Hash_Stmt, 1, String (Encode (Path)));
+      Status := Sqlite.Step (DB, Select_Hash_Stmt);
       if Status = Sqlite.SQLITE_ROW then
          declare
-            Hash : constant String := Sqlite.To_String (Stmt, 0);
+            Hash : constant String := Sqlite.To_String (Select_Hash_Stmt, 0);
          begin
-            Sqlite.Finalize (DB, Stmt);
+            Sqlite.Finalize (DB, Select_Hash_Stmt);
             return Hash;
          end;
       elsif Status = Sqlite.SQLITE_DONE then
-         Sqlite.Finalize (DB, Stmt);
+         Sqlite.Finalize (DB, Select_Hash_Stmt);
          return "";
       else
-         Sqlite.Finalize (DB, Stmt);
+         Sqlite.Finalize (DB, Select_Hash_Stmt);
          raise Program_Error with "Select hash returned error: " & Status'Image;
       end if;
    end Get_Hash;
