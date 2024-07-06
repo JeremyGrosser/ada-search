@@ -11,7 +11,7 @@ package body Codesearch.Database is
 
    Select_FTS_Query : constant String :=
       "SELECT rowid, crate, path, filename, hash, rank FROM f " &
-      "WHERE text MATCH ? GROUP BY crate, filename ORDER BY rank LIMIT 250";
+      "WHERE text MATCH ? ORDER BY rank LIMIT 250";
    Select_Hash_Query : constant String :=
       "SELECT hash FROM path_hash WHERE path=? LIMIT 1";
 
