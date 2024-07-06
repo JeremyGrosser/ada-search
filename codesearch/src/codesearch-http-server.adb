@@ -124,6 +124,14 @@ package body Codesearch.HTTP.Server is
          Accept_Socket (Listen_Sock, Client_Sock, Addr);
          Serve_Connection (Client_Sock);
       end loop;
+   exception
+      when Socket_Error =>
+         return;
    end Run;
+
+   procedure Stop is
+   begin
+      Close_Socket (Listen_Sock);
+   end Stop;
 
 end Codesearch.HTTP.Server;

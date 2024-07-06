@@ -18,12 +18,9 @@ is
    P        : constant Unicode := Decode (UTF8 (URI.Normalize_Path (HTTP.Path (Request))));
    Basename : constant Unicode := Remove_Prefix (Remove_Suffix (P, ".html"), "/");
 begin
-   Codesearch.File.Set_Working_Directory;
-   Codesearch.Database.Open (Read_Only => True);
    declare
       Hash : constant String := Codesearch.Database.Get_Hash (Basename);
    begin
-      Codesearch.Database.Close;
       if Hash = "" then
          HTTP.Set_Status (Response, 404, "Not Found");
          HTTP.Set_Header (Response, "Content-Type", "text/plain;charset=utf-8");

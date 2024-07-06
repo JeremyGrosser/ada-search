@@ -11,6 +11,10 @@ is
 
    procedure Set_Working_Directory;
 
+   function Resource_Exists
+      (Filename : String)
+      return Boolean;
+
    function Read_Resource
       (Filename : String)
       return Unicode;

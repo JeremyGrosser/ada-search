@@ -87,7 +87,10 @@ package body Codesearch.HTTP is
    is
       use Response_Buffers;
    begin
-      This.Started := False;
+      if This.Started or else Length (This.Buffer) /= 0 then
+         raise Program_Error with "Set_Status cannot be called at this time";
+      end if;
+      --  This.Started := False;
       Append (This.Buffer, "HTTP/1.1");
       Append (This.Buffer, Code'Image);
       Append (This.Buffer, ' ');

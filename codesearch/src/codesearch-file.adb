@@ -30,4 +30,9 @@ package body Codesearch.File is
       return Read_Unicode (Share.Resource_Path & Filename);
    end Read_Resource;
 
+   function Resource_Exists
+      (Filename : String)
+      return Boolean
+   is (Ada.Directories.Exists (Share.Resource_Path & Filename));
+
 end Codesearch.File;

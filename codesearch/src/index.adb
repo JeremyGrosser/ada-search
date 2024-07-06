@@ -25,12 +25,10 @@ begin
          Results  : DB.Search_Results (1 .. 250);
          Last     : Natural;
       begin
-         DB.Open (Read_Only => True);
          DB.Search
             (Query   => Str.Decode (Str.UTF8 (Q)),
              Results => Results,
              Last    => Last);
-         DB.Close;
          if Last > 0 then
             HTTP.Set_Status (Response, 200, "OK");
             HTTP.Set_Header (Response, "Content-Type", "text/html;charset=utf-8");
