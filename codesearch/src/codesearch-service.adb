@@ -18,7 +18,7 @@ package body Codesearch.Service is
       else
          Response.Set_Status (404, "Not Found");
          Response.Set_Header ("Content-Type", "text/plain;charset=utf-8");
-         Response.Put ("404 Not Found");
+         Response.Put ("404 Not Found" & LF);
       end if;
    end Handle_Request;
 

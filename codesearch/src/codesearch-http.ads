@@ -1,5 +1,8 @@
 with Codesearch.Strings;
-private with Ada.Streams;
+private with Ada.Strings.Equal_Case_Insensitive;
+private with Ada.Strings.Hash_Case_Insensitive;
+private with Ada.Strings.Bounded;
+private with Ada.Containers.Indefinite_Hashed_Maps;
 private with GNAT.Sockets;
 
 package Codesearch.HTTP
@@ -46,16 +49,42 @@ is
 
 private
 
-   Max_Request_Length : constant := 65536;
+   Max_Request_Length   : constant := 4096;
+   Max_Response_Length  : constant := 4096;
+   --  Status line and headers only, does not include payload
+
+   type Span is record
+      First, Last : Natural := 0;
+   end record;
+
+   package Request_Header_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+      (Key_Type         => String,
+       Element_Type     => Span,
+       Equivalent_Keys  => Ada.Strings.Equal_Case_Insensitive,
+       Hash             => Ada.Strings.Hash_Case_Insensitive);
 
    type Request is record
-      Item : Ada.Streams.Stream_Element_Array (1 .. Max_Request_Length);
-      Last : Ada.Streams.Stream_Element_Offset := 0;
-      End_Headers : Ada.Streams.Stream_Element_Offset := 0;
+      Item        : String (1 .. Max_Request_Length);
+      Last        : Natural := 0;
+      End_Headers : Natural := 0;
+      Method      : Span;
+      Target      : Span;
+      Protocol    : Span;
+      Headers     : Request_Header_Maps.Map := Request_Header_Maps.Empty_Map;
    end record;
 
+   package Response_Buffers is new Ada.Strings.Bounded.Generic_Bounded_Length
+      (Max_Response_Length);
+
    type Response is record
-      Socket : GNAT.Sockets.Socket_Type;
+      Socket   : GNAT.Sockets.Socket_Type;
+      Started  : Boolean := False; --  Set True after status and headers are sent
+      Buffer   : Response_Buffers.Bounded_String := Response_Buffers.Null_Bounded_String;
    end record;
+
+   function Get_String
+      (Req : Request;
+       Sp  : Span)
+       return String;
 
 end Codesearch.HTTP;

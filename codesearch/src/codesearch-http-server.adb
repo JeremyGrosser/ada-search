@@ -18,29 +18,88 @@ package body Codesearch.HTTP.Server is
       Listen_Socket (Listen_Sock);
    end Bind;
 
+   function Index
+      (Req   : Request;
+       First : Positive;
+       Str   : String)
+       return Natural
+   is
+   begin
+      if Str'Length > (Req.End_Headers - First + 1) then
+         return 0;
+      end if;
+
+      for I in First .. Req.End_Headers - Str'Length + 1 loop
+         if Req.Item (I .. I + Str'Length - 1) = Str then
+            return I;
+         end if;
+      end loop;
+      return 0;
+   end Index;
+
+   Parse_Error : exception;
+
    procedure Parse_Request
       (Req : in out Request)
    is
-      CRLFCRLF : constant Stream_Element_Array := (16#0D#, 16#0A#, 16#0D#, 16#0A#);
+      CRLF : constant String := ASCII.CR & ASCII.LF;
    begin
-      for I in Req.Item'First + 3 .. Req.Last loop
-         if Req.Item (I - 3 .. I) = CRLFCRLF then
-            Req.End_Headers := I;
-            exit;
-         end if;
-      end loop;
+      Req.End_Headers := Req.Item'Last;
+      Req.End_Headers := Index (Req, Req.Item'First, CRLF & CRLF);
+      if Req.End_Headers = 0 then
+         --  Don't start parsing the request until we have all the headers
+         return;
+      else
+         Req.End_Headers := Req.End_Headers + 2;
+         --  Leave one CRLF in the buffer to make header parsing easier
+      end if;
+
+      Req.Method.First := Req.Item'First;
+      Req.Method.Last := Index (Req, Req.Method.First, " ") - 1;
+
+      Req.Target.First := Req.Method.Last + 2;
+      Req.Target.Last := Index (Req, Req.Target.First, " ") - 1;
+
+      Req.Protocol.First := Req.Target.Last + 2;
+      Req.Protocol.Last := Index (Req, Req.Protocol.First, CRLF) - 1;
+
+      declare
+         Name, Value : Span;
+         I : Natural := Req.Protocol.Last + 3;
+      begin
+         loop
+            Name.First := I;
+            I := Index (Req, Name.First, ":");
+            exit when I = 0;
+            Name.Last := I - 1;
+
+            Value.First := I + 1;
+            if Req.Item (Value.First) = ' ' then --  consume optional whitespace
+               Value.First := Value.First + 1;
+            end if;
+            I := Index (Req, Value.First, CRLF);
+            if I = 0 then
+               raise Parse_Error with "Missing CRLF after header value";
+            end if;
+            Value.Last := I - 1;
+            I := I + 2;
+            Request_Header_Maps.Include (Req.Headers, Get_String (Req, Name), Value);
+         end loop;
+      end;
    end Parse_Request;
 
    procedure Serve_Connection
       (Sock : Socket_Type)
    is
       Req  : Request;
-      Last : Stream_Element_Offset;
+      Item : Stream_Element_Array (1 .. Stream_Element_Offset (Req.Item'Last))
+         with Address => Req.Item'Address;
+      Last : Stream_Element_Offset := 0;
    begin
       loop
-         Receive_Socket (Sock, Req.Item (Req.Last + 1 .. Req.Item'Last), Last);
-         exit when Last = 0 or else Req.Last = Req.Item'Last;
-         Req.Last := Last;
+         Receive_Socket (Sock, Item (Last + 1 .. Item'Last), Last);
+         exit when Last = 0;
+         Req.Last := Natural (Last);
          Parse_Request (Req);
          exit when Req.End_Headers > 0;
       end loop;
@@ -52,6 +111,9 @@ package body Codesearch.HTTP.Server is
          Codesearch.Service.Handle_Request (Req, Resp);
       end;
       Close_Socket (Sock);
+   exception
+      when Parse_Error =>
+         Close_Socket (Sock);
    end Serve_Connection;
 
    procedure Run is
