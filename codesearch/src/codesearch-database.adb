@@ -151,14 +151,11 @@ package body Codesearch.Database is
          declare
             Hash : constant String := Sqlite.To_String (Select_Hash_Stmt, 0);
          begin
-            Sqlite.Finalize (DB, Select_Hash_Stmt);
             return Hash;
          end;
       elsif Status = Sqlite.SQLITE_DONE then
-         Sqlite.Finalize (DB, Select_Hash_Stmt);
          return "";
       else
-         Sqlite.Finalize (DB, Select_Hash_Stmt);
          raise Program_Error with "Select hash returned error: " & Status'Image;
       end if;
    end Get_Hash;
@@ -212,6 +209,7 @@ package body Codesearch.Database is
          Sqlite.Finalize (DB, Insert_FTS_Stmt);
       end if;
 
+      Sqlite.Finalize (DB, Select_Hash_Stmt);
       if Insert_Hash_Stmt /= null then
          Sqlite.Finalize (DB, Insert_Hash_Stmt);
       end if;

@@ -31,13 +31,13 @@ begin
             use Codesearch.Strings.Unicode_Maps;
             Env  : Map := Empty_Map;
             T    : constant Unicode := File.Read_Resource ("highlight.html");
-            HL   : constant String := Codesearch.Syntax.Highlight (Codesearch.Blobstore.Get (Hash));
+            HL   : constant Unicode := Codesearch.Syntax.Highlight (Codesearch.Blobstore.Get (Hash));
             Prefix : constant String := "source/alire-20240227/";
             Title  : constant Unicode := Basename (Basename'First + Prefix'Length .. Basename'Last);
          begin
             Insert (Env, "title", Title);
             Insert (Env, "href", "/" & Basename);
-            Insert (Env, "code", Decode (UTF8 (HL)));
+            Insert (Env, "code", HL);
             HTTP.Set_Status (Response, 200, "OK");
             HTTP.Set_Header (Response, "Content-Type", "text/html;charset=utf-8");
             HTTP.Set_Header (Response, "Cache-Control", "max-age=2592000");

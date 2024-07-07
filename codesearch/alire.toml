@@ -18,6 +18,7 @@ aaa = "~0.2.6"
 resources = "~0.1.0"
 hex_format = "~0.1.0"
 libkeccak = "^3.0.0"
+libadalang = "^24"
 
 [build-switches]
 release.optimization = ["-gnatn2", "-march=native", "-O3"]

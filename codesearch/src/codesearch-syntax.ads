@@ -1,9 +1,11 @@
+with Codesearch.Strings; use Codesearch.Strings;
+
 package Codesearch.Syntax
    with Elaborate_Body
 is
 
    function Highlight
       (Text : String)
-      return String;
+      return Unicode;
 
 end Codesearch.Syntax;
