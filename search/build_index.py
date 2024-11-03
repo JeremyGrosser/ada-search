@@ -1,9 +1,12 @@
 import sqlite3
 import os
 
-basedir = '../alire-20220916'
-os.unlink('index.db')
-db = sqlite3.connect('index.db')
+basedir = '../alire-20240925'
+dbfile = 'index.db'
+
+if os.path.exists(dbfile):
+    os.unlink(dbfile)
+db = sqlite3.connect(dbfile)
 db.execute('CREATE VIRTUAL TABLE f USING fts5(crate, path, filename, text);')
 
 rowid = 0
