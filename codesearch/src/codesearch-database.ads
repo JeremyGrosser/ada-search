@@ -40,6 +40,16 @@ is
        Path : Unicode)
       return String;
 
+   function Get_Highlight
+      (This : Session;
+       Path : Unicode)
+       return String;
+
+   function Exists
+      (This : Session;
+       Path : Unicode)
+       return Boolean;
+
    procedure Close
       (This : in out Session);
 
@@ -48,7 +58,9 @@ private
    type Query_Type is
       (Create_FTS,
        Create_Path_Hash,
+       Create_Path_Hash_Index,
        Create_Content,
+       Create_Content_Index,
 
        Insert_FTS,
        Insert_Path_Hash,
@@ -58,7 +70,7 @@ private
        Select_Path_Hash,
        Select_Content);
 
-   subtype Create_Query is Query_Type range Create_FTS .. Create_Content;
+   subtype Create_Query is Query_Type range Create_FTS .. Create_Content_Index;
    subtype Insert_Query is Query_Type range Insert_FTS .. Insert_Content;
    subtype Select_Query is Query_Type range Select_FTS .. Select_Content;
 
@@ -67,7 +79,7 @@ private
    type Session is record
       DB   : Sqlite.Connection;
       Stmt : Statements;
-      Insert_Row_Id : Natural;
+      Insert_Row_Id : Natural := 0;
    end record;
 
 end Codesearch.Database;

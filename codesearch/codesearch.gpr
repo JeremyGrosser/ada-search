@@ -11,6 +11,8 @@ project Codesearch is
       "main.adb"
    );
 
+   for Languages use ("C", "Ada");
+
    package Compiler is
       for Default_Switches ("Ada") use Codesearch_Config.Ada_Compiler_Switches & (
          "-gnatyM120",

@@ -1,3 +1,4 @@
+with Codesearch.Syntax;
 with Hex_Format_8;
 with SHA3;
 
@@ -25,6 +26,8 @@ package body Codesearch.Database is
             return "INSERT OR IGNORE INTO path_hash (path, hash) VALUES (?, ?)";
          when Select_Path_Hash =>
             return "SELECT hash FROM path_hash WHERE path=? LIMIT 1";
+         when Create_Path_Hash_Index =>
+            return "CREATE INDEX path_hash_idx ON path_hash (path)";
 
          when Create_Content =>
             return "CREATE TABLE content (hash TEXT, data BLOB)";
@@ -32,6 +35,8 @@ package body Codesearch.Database is
             return "INSERT INTO content (hash, data) VALUES (?, ?)";
          when Select_Content =>
             return "SELECT data FROM content WHERE hash=? LIMIT 1";
+         when Create_Content_Index =>
+            return "CREATE INDEX content_idx ON content (hash)";
       end case;
    end SQL;
 
@@ -62,10 +67,15 @@ package body Codesearch.Database is
          raise Program_Error with "Unable to open index.db";
       end if;
 
+      Sqlite.Exec (S.DB, "PRAGMA journal_mode=WAL");
+      Sqlite.Exec (S.DB, "PRAGMA synchronous=NORMAL");
+
       for Query in Create_Query'Range loop
          S.Stmt (Query) := Sqlite.Prepare (S.DB, SQL (Query));
          Execute (S, Query);
       end loop;
+
+      Sqlite.Exec (S.DB, "PRAGMA optimize");
 
       Close (S);
    end Create;
@@ -85,6 +95,8 @@ package body Codesearch.Database is
       if not Sqlite.Is_Open (This.DB) then
          raise Program_Error with "Unable to open index.db";
       end if;
+
+      Sqlite.Exec (This.DB, "PRAGMA synchronous=NORMAL");
 
       for Query in Select_Query'Range loop
          This.Stmt (Query) := Sqlite.Prepare (This.DB, SQL (Query));
@@ -278,6 +290,18 @@ package body Codesearch.Database is
       return String
    is (Get_Content_By_Hash (This, Get_Hash (This, Path)));
 
+   function Get_Highlight
+      (This : Session;
+       Path : Unicode)
+       return String
+   is (Get_Content_By_Hash (This, Get_Hash (This, Path & ".html")));
+
+   function Exists
+      (This : Session;
+       Path : Unicode)
+       return Boolean
+   is (Get_Hash (This, Path) /= "");
+
    procedure Add_FTS
       (This : in out Session;
        Crate, Path, Filename, Hash, Text : String)
@@ -299,11 +323,20 @@ package body Codesearch.Database is
       (This : in out Session;
        Crate, Path, Filename, Text : String)
    is
-      Hash : constant String := Content_Hash (Text);
+      Text_Hash : constant String := Content_Hash (Text);
+      Text_Path : constant Unicode := Decode (UTF8 (Path));
+
+      Highlight : constant String := Codesearch.Syntax.Highlight (Text);
+      Highlight_Hash : constant String := Content_Hash (Highlight);
+      Highlight_Path : constant Unicode := Text_Path & ".html";
    begin
-      Add_Content (This, Hash, Text);
-      Add_Hash (This, Decode (UTF8 (Path)), Hash);
-      Add_FTS (This, Crate, Path, Filename, Hash, Text);
+      Add_Content (This, Text_Hash, Text);
+      Add_Hash (This, Text_Path, Text_Hash);
+
+      Add_Content (This, Highlight_Hash, Highlight);
+      Add_Hash (This, Highlight_Path, Highlight_Hash);
+
+      Add_FTS (This, Crate, Path, Filename, Text_Hash, Text);
    end Add;
 
    procedure Close

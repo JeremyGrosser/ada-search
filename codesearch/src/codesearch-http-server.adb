@@ -5,6 +5,7 @@ with Codesearch.Service;
 package body Codesearch.HTTP.Server is
 
    Listen_Sock : Socket_Type;
+   Running : Boolean := True;
 
    procedure Bind is
       Addr : constant Sock_Addr_Type :=
@@ -123,18 +124,21 @@ package body Codesearch.HTTP.Server is
       Addr        : Sock_Addr_Type;
       Client_Sock : Socket_Type;
    begin
-      loop
-         Accept_Socket (Listen_Sock, Client_Sock, Addr);
-         Serve_Connection (Client_Sock, DB);
+      while Running loop
+         begin
+            Accept_Socket (Listen_Sock, Client_Sock, Addr);
+            Serve_Connection (Client_Sock, DB);
+         exception
+            when Socket_Error =>
+               null;
+         end;
       end loop;
-   exception
-      when Socket_Error =>
-         return;
    end Run;
 
    procedure Stop is
    begin
       Close_Socket (Listen_Sock);
+      Running := False;
    end Stop;
 
 end Codesearch.HTTP.Server;

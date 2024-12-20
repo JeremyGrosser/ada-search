@@ -5,9 +5,11 @@ with Ada.Strings.Fixed;
 with Codesearch.Database;
 with Codesearch.File;
 with Ada.Text_IO;
+with Ada.Command_Line;
 
 procedure Build_Index is
-   Base_Dir : constant String := "source/alire-20241219/";
+   --  Base_Dir : constant String := "source/alire-20241219/";
+   Base_Dir : constant String := Ada.Command_Line.Argument (1);
    DB : Codesearch.Database.Session;
 
    function Read_File
@@ -92,7 +94,12 @@ procedure Build_Index is
    end Walk;
 begin
    Codesearch.File.Set_Working_Directory;
-   Codesearch.Database.Create;
+   if not Exists ("index.db") then
+      Ada.Text_IO.Put_Line ("index.db does not exist, creating it");
+      Codesearch.Database.Create;
+   else
+      Ada.Text_IO.Put_Line ("index.db exists, skipping schema");
+   end if;
    DB := Codesearch.Database.Open (Read_Only => False);
    Walk (Base_Dir);
    Codesearch.Database.Close (DB);
