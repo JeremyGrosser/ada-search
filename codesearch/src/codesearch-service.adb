@@ -8,14 +8,15 @@ package body Codesearch.Service is
 
    procedure Handle_Request
       (Request  : HTTP.Request;
-       Response : in out HTTP.Response)
+       Response : in out HTTP.Response;
+       DB       : Codesearch.Database.Session)
    is
       P : constant Unicode := Decode (UTF8 (Request.Path));
    begin
       if P = "/" then
-         Index (Request, Response);
+         Index (Request, Response, DB);
       elsif Starts_With (P, "/source/") then
-         Source_Highlight (Request, Response);
+         Source_Highlight (Request, Response, DB);
       elsif Starts_With (P, "/static/") then
          Static_File (Request, Response);
       else

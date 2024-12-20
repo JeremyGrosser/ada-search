@@ -10,11 +10,13 @@ procedure Main is
    begin
       Server.Stop;
    end Stop;
+
+   DB : Codesearch.Database.Session;
 begin
    Codesearch.File.Set_Working_Directory;
-   Codesearch.Database.Open (Read_Only => True);
+   DB := Codesearch.Database.Open (Read_Only => True);
    Server.Bind;
    GNAT.Ctrl_C.Install_Handler (Stop'Unrestricted_Access);
-   Server.Run;
-   Codesearch.Database.Close;
+   Server.Run (DB);
+   Codesearch.Database.Close (DB);
 end Main;

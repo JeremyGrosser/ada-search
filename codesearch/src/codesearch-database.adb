@@ -1,4 +1,3 @@
-with Sqlite;
 with Hex_Format_8;
 with SHA3;
 
@@ -6,113 +5,116 @@ package body Codesearch.Database is
 
    Database_Path : constant String := "index.db";
 
-   Insert_FTS_Query : constant String :=
-      "INSERT INTO f(rowid, crate, path, filename, hash, text) VALUES (?, ?, ?, ?, ?, ?)";
-   Insert_Hash_Query : constant String :=
-      "INSERT OR IGNORE INTO path_hash (path, hash) VALUES (?, ?)";
-   Insert_Content_Query : constant String :=
-      "INSERT INTO content (hash, data) VALUES (?, ?)";
+   function SQL
+      (Q : Query_Type)
+      return String
+   is
+   begin
+      case Q is
+         when Create_FTS =>
+            return "CREATE VIRTUAL TABLE f USING fts5(crate, path, filename, hash, text)";
+         when Insert_FTS =>
+            return "INSERT INTO f(rowid, crate, path, filename, hash, text) VALUES (?, ?, ?, ?, ?, ?)";
+         when Select_FTS =>
+            return "SELECT rowid, crate, path, filename, hash, rank FROM f " &
+            "WHERE text MATCH ? ORDER BY rank LIMIT 250";
 
-   Select_FTS_Query : constant String :=
-      "SELECT rowid, crate, path, filename, hash, rank FROM f " &
-      "WHERE text MATCH ? ORDER BY rank LIMIT 250";
-   Select_Hash_Query : constant String :=
-      "SELECT hash FROM path_hash WHERE path=? LIMIT 1";
-   Select_Content_Query : constant String :=
-      "SELECT data FROM content WHERE hash=? LIMIT 1";
+         when Create_Path_Hash =>
+            return "CREATE TABLE path_hash (path TEXT, hash TEXT)";
+         when Insert_Path_Hash =>
+            return "INSERT OR IGNORE INTO path_hash (path, hash) VALUES (?, ?)";
+         when Select_Path_Hash =>
+            return "SELECT hash FROM path_hash WHERE path=? LIMIT 1";
 
-   Select_FTS_Stmt : Sqlite.Statement;
-   Insert_FTS_Stmt : Sqlite.Statement;
+         when Create_Content =>
+            return "CREATE TABLE content (hash TEXT, data BLOB)";
+         when Insert_Content =>
+            return "INSERT INTO content (hash, data) VALUES (?, ?)";
+         when Select_Content =>
+            return "SELECT data FROM content WHERE hash=? LIMIT 1";
+      end case;
+   end SQL;
 
-   Select_Hash_Stmt : Sqlite.Statement;
-   Insert_Hash_Stmt : Sqlite.Statement;
+   subtype Write_Query is Query_Type range Create_Query'First .. Insert_Query'Last;
 
-   Select_Content_Stmt : Sqlite.Statement;
-   Insert_Content_Stmt : Sqlite.Statement;
-
-   DB : Sqlite.Connection;
-
-   procedure Create is
-      FTS_Query : constant String :=
-         "CREATE VIRTUAL TABLE f USING fts5(crate, path, filename, hash, text)";
-      Path_Hash_Query : constant String :=
-         "CREATE TABLE path_hash (path TEXT, hash TEXT)";
-      Content_Query : constant String :=
-         "CREATE TABLE content (hash TEXT, data BLOB)";
-      Stmt : Sqlite.Statement;
+   procedure Execute
+      (This : Session;
+       Q    : Write_Query)
+   is
       use type Sqlite.Result_Code;
       Status : Sqlite.Result_Code;
    begin
+      Status := Sqlite.Step (This.DB, This.Stmt (Q));
+      if Status /= Sqlite.SQLITE_DONE then
+         raise Program_Error with "Unable to execute " & Q'Image & ": " & Status'Image;
+      end if;
+   end Execute;
+
+   procedure Create is
+      S : Session;
+   begin
       Sqlite.Initialize;
-      DB := Sqlite.Open (Database_Path,
+      S.DB := Sqlite.Open (Database_Path,
          (CREATE  => True,
           WAL     => True,
           others  => False));
-      if not Sqlite.Is_Open (DB) then
+      if not Sqlite.Is_Open (S.DB) then
          raise Program_Error with "Unable to open index.db";
       end if;
-      Stmt := Sqlite.Prepare (DB, FTS_Query);
-      Status := Sqlite.Step (DB, Stmt);
-      if Status /= Sqlite.SQLITE_DONE then
-         raise Program_Error with "Unable to create fts5 table";
-      end if;
-      Sqlite.Finalize (DB, Stmt);
 
-      Stmt := Sqlite.Prepare (DB, Path_Hash_Query);
-      Status := Sqlite.Step (DB, Stmt);
-      if Status /= Sqlite.SQLITE_DONE then
-         raise Program_Error with "Unable to create path_hash table";
-      end if;
-      Sqlite.Finalize (DB, Stmt);
+      for Query in Create_Query'Range loop
+         S.Stmt (Query) := Sqlite.Prepare (S.DB, SQL (Query));
+         Execute (S, Query);
+      end loop;
 
-      Stmt := Sqlite.Prepare (DB, Content_Query);
-      Status := Sqlite.Step (DB, Stmt);
-      if Status /= Sqlite.SQLITE_DONE then
-         raise Program_Error with "Unable to create content table";
-      end if;
-      Sqlite.Finalize (DB, Stmt);
-      Sqlite.Close (DB);
+      Close (S);
    end Create;
 
-   procedure Open
+   function Open
       (Read_Only : Boolean := True)
+      return Session
    is
+      This : Session;
    begin
       Sqlite.Initialize;
-      DB := Sqlite.Open (Database_Path,
+      This.DB := Sqlite.Open (Database_Path,
          (READONLY => Read_Only,
           NOMUTEX  => True,
           WAL      => True,
           others   => False));
-      if not Sqlite.Is_Open (DB) then
+      if not Sqlite.Is_Open (This.DB) then
          raise Program_Error with "Unable to open index.db";
       end if;
 
-      Select_FTS_Stmt := Sqlite.Prepare (DB, Select_FTS_Query);
-      Select_Hash_Stmt := Sqlite.Prepare (DB, Select_Hash_Query);
-      Select_Content_Stmt := Sqlite.Prepare (DB, Select_Content_Query);
+      for Query in Select_Query'Range loop
+         This.Stmt (Query) := Sqlite.Prepare (This.DB, SQL (Query));
+      end loop;
 
       if not Read_Only then
-         Insert_FTS_Stmt := Sqlite.Prepare (DB, Insert_FTS_Query);
-         Insert_Hash_Stmt := Sqlite.Prepare (DB, Insert_Hash_Query);
-         Insert_Content_Stmt := Sqlite.Prepare (DB, Insert_Content_Query);
+         for Query in Insert_Query'Range loop
+            This.Stmt (Query) := Sqlite.Prepare (This.DB, SQL (Query));
+         end loop;
       end if;
+
+      return This;
    end Open;
 
    procedure Search
-      (Query   : Unicode;
+      (This    : Session;
+       Query   : Unicode;
        Results : out Search_Results;
        Last    : out Natural)
    is
       use type Sqlite.Result_Code;
       Status : Sqlite.Result_Code;
+      Stmt : Sqlite.Statement renames This.Stmt (Select_FTS);
 
       NUL : constant Wide_Wide_Character := Wide_Wide_Character'Val (0);
       Q : Unbounded_Unicode;
    begin
       Last := 0;
 
-      if not Sqlite.Is_Open (DB) then
+      if not Sqlite.Is_Open (This.DB) then
          raise Program_Error with "Database not open";
       end if;
 
@@ -132,19 +134,19 @@ package body Codesearch.Database is
          return;
       end if;
 
-      Sqlite.Reset (DB, Select_FTS_Stmt);
-      Sqlite.Bind_Text (DB, Select_FTS_Stmt, 1, String (Encode (Q)));
+      Sqlite.Reset (This.DB, Stmt);
+      Sqlite.Bind_Text (This.DB, Stmt, 1, String (Encode (Q)));
 
       for I in Results'Range loop
-         Status := Sqlite.Step (DB, Select_FTS_Stmt);
+         Status := Sqlite.Step (This.DB, Stmt);
          exit when Status /= Sqlite.SQLITE_ROW;
          Results (I) :=
-            (Id         => Natural (Sqlite.To_Integer (Select_FTS_Stmt, 0)),
-             Crate      => To_Unbounded (Decode (UTF8 (Sqlite.To_String (Select_FTS_Stmt, 1)))),
-             Path       => To_Unbounded (Decode (UTF8 (Sqlite.To_String (Select_FTS_Stmt, 2)))),
-             Filename   => To_Unbounded (Decode (UTF8 (Sqlite.To_String (Select_FTS_Stmt, 3)))),
-             Hash       => To_Unbounded (Decode (UTF8 (Sqlite.To_String (Select_FTS_Stmt, 4)))),
-             Rank       => Sqlite.To_Integer (Select_FTS_Stmt, 5));
+            (Id         => Natural (Sqlite.To_Integer (Stmt, 0)),
+             Crate      => To_Unbounded (Decode (UTF8 (Sqlite.To_String (Stmt, 1)))),
+             Path       => To_Unbounded (Decode (UTF8 (Sqlite.To_String (Stmt, 2)))),
+             Filename   => To_Unbounded (Decode (UTF8 (Sqlite.To_String (Stmt, 3)))),
+             Hash       => To_Unbounded (Decode (UTF8 (Sqlite.To_String (Stmt, 4)))),
+             Rank       => Sqlite.To_Integer (Stmt, 5));
          Last := I;
       end loop;
 
@@ -188,17 +190,19 @@ package body Codesearch.Database is
    end Content_Hash;
 
    function Get_Hash
-      (Path : Unicode)
+      (This : Session;
+       Path : Unicode)
       return String
    is
       use type Sqlite.Result_Code;
       Status : Sqlite.Result_Code;
+      Stmt : Sqlite.Statement renames This.Stmt (Select_Path_Hash);
    begin
-      Sqlite.Reset (DB, Select_Hash_Stmt);
-      Sqlite.Bind_Text (DB, Select_Hash_Stmt, 1, String (Encode (Path)));
-      Status := Sqlite.Step (DB, Select_Hash_Stmt);
+      Sqlite.Reset (This.DB, Stmt);
+      Sqlite.Bind_Text (This.DB, Stmt, 1, String (Encode (Path)));
+      Status := Sqlite.Step (This.DB, Stmt);
       if Status = Sqlite.SQLITE_ROW then
-         return Sqlite.To_String (Select_Hash_Stmt, 0);
+         return Sqlite.To_String (Stmt, 0);
       elsif Status = Sqlite.SQLITE_DONE then
          return "";
       else
@@ -207,127 +211,113 @@ package body Codesearch.Database is
    end Get_Hash;
 
    procedure Add_Hash
-      (Path : Unicode;
+      (This : Session;
+       Path : Unicode;
        Hash : String)
    is
-      use type Sqlite.Result_Code;
-      Status : Sqlite.Result_Code;
+      Stmt : Sqlite.Statement renames This.Stmt (Insert_Path_Hash);
    begin
-      Sqlite.Reset (DB, Insert_Hash_Stmt);
-      Sqlite.Bind_Text (DB, Insert_Hash_Stmt, 1, String (Encode (Path)));
-      Sqlite.Bind_Text (DB, Insert_Hash_Stmt, 2, Hash);
-      Status := Sqlite.Step (DB, Insert_Hash_Stmt);
-      if Status /= Sqlite.SQLITE_DONE then
-         raise Program_Error with "Insert path_hash failed with " & Status'Image;
-      end if;
+      Sqlite.Reset (This.DB, Stmt);
+      Sqlite.Bind_Text (This.DB, Stmt, 1, String (Encode (Path)));
+      Sqlite.Bind_Text (This.DB, Stmt, 2, Hash);
+      Execute (This, Insert_Path_Hash);
    end Add_Hash;
 
    function Content_Exists
-      (Hash : String)
+      (This : Session;
+       Hash : String)
       return Boolean
    is
       use type Sqlite.Result_Code;
       Status : Sqlite.Result_Code;
+      Stmt : Sqlite.Statement renames This.Stmt (Select_Content);
    begin
-      Sqlite.Reset (DB, Select_Content_Stmt);
-      Sqlite.Bind_Text (DB, Select_Content_Stmt, 1, Hash);
-      Status := Sqlite.Step (DB, Select_Content_Stmt);
+      Sqlite.Reset (This.DB, Stmt);
+      Sqlite.Bind_Text (This.DB, Stmt, 1, Hash);
+      Status := Sqlite.Step (This.DB, Stmt);
       return Status = Sqlite.SQLITE_ROW;
    end Content_Exists;
 
    procedure Add_Content
-      (Hash : String;
+      (This : Session;
+       Hash : String;
        Data : String)
    is
-      use type Sqlite.Result_Code;
-      Status : Sqlite.Result_Code;
+      Stmt : Sqlite.Statement renames This.Stmt (Insert_Content);
    begin
-      if not Content_Exists (Hash) then
-         Sqlite.Reset (DB, Insert_Content_Stmt);
-         Sqlite.Bind_Text (DB, Insert_Content_Stmt, 1, Hash);
-         Sqlite.Bind_Text (DB, Insert_Content_Stmt, 2, Data);
-         Status := Sqlite.Step (DB, Insert_Content_Stmt);
-         if Status /= Sqlite.SQLITE_DONE then
-            raise Program_Error with "Insert content failed with " & Status'Image;
-         end if;
+      if not Content_Exists (This, Hash) then
+         Sqlite.Reset (This.DB, Stmt);
+         Sqlite.Bind_Text (This.DB, Stmt, 1, Hash);
+         Sqlite.Bind_Text (This.DB, Stmt, 2, Data);
+         Execute (This, Insert_Content);
       end if;
    end Add_Content;
 
    function Get_Content_By_Hash
-      (Hash : String)
+      (This : Session;
+       Hash : String)
       return String
    is
       use type Sqlite.Result_Code;
       Status : Sqlite.Result_Code;
+      Stmt : Sqlite.Statement renames This.Stmt (Select_Content);
    begin
-      Sqlite.Reset (DB, Select_Content_Stmt);
-      Sqlite.Bind_Text (DB, Select_Content_Stmt, 1, Hash);
-      Status := Sqlite.Step (DB, Select_Content_Stmt);
+      Sqlite.Reset (This.DB, Stmt);
+      Sqlite.Bind_Text (This.DB, Stmt, 1, Hash);
+      Status := Sqlite.Step (This.DB, Stmt);
       if Status = Sqlite.SQLITE_ROW then
-         return Sqlite.To_String (Select_Content_Stmt, 0);
+         return Sqlite.To_String (Stmt, 0);
       else
          return "";
       end if;
    end Get_Content_By_Hash;
 
    function Get_Text
-      (Path : Unicode)
+      (This : Session;
+       Path : Unicode)
       return String
-   is (Get_Content_By_Hash (Get_Hash (Path)));
-
-   Insert_Row_Id : Natural := 0;
+   is (Get_Content_By_Hash (This, Get_Hash (This, Path)));
 
    procedure Add_FTS
-      (Crate, Path, Filename, Hash, Text : String)
+      (This : in out Session;
+       Crate, Path, Filename, Hash, Text : String)
    is
-      use type Sqlite.Result_Code;
-      Status : Sqlite.Result_Code;
+      Stmt : Sqlite.Statement renames This.Stmt (Insert_FTS);
    begin
-      Sqlite.Reset (DB, Insert_FTS_Stmt);
-      Sqlite.Bind_Text (DB, Insert_FTS_Stmt, 1, Insert_Row_Id'Image);
-      Sqlite.Bind_Text (DB, Insert_FTS_Stmt, 2, Crate);
-      Sqlite.Bind_Text (DB, Insert_FTS_Stmt, 3, Path);
-      Sqlite.Bind_Text (DB, Insert_FTS_Stmt, 4, Filename);
-      Sqlite.Bind_Text (DB, Insert_FTS_Stmt, 5, Hash);
-      Sqlite.Bind_Text (DB, Insert_FTS_Stmt, 6, Text);
-      Status := Sqlite.Step (DB, Insert_FTS_Stmt);
-      if Status /= Sqlite.SQLITE_DONE then
-         raise Program_Error with "Insert fts failed with " & Status'Image;
-      end if;
-
-      Insert_Row_Id := Insert_Row_Id + 1;
+      Sqlite.Reset (This.DB, Stmt);
+      Sqlite.Bind_Text (This.DB, Stmt, 1, This.Insert_Row_Id'Image);
+      Sqlite.Bind_Text (This.DB, Stmt, 2, Crate);
+      Sqlite.Bind_Text (This.DB, Stmt, 3, Path);
+      Sqlite.Bind_Text (This.DB, Stmt, 4, Filename);
+      Sqlite.Bind_Text (This.DB, Stmt, 5, Hash);
+      Sqlite.Bind_Text (This.DB, Stmt, 6, Text);
+      Execute (This, Insert_FTS);
+      This.Insert_Row_Id := This.Insert_Row_Id + 1;
    end Add_FTS;
 
    procedure Add
-      (Crate, Path, Filename, Text : String)
+      (This : in out Session;
+       Crate, Path, Filename, Text : String)
    is
       Hash : constant String := Content_Hash (Text);
    begin
-      Add_Content (Hash, Text);
-      Add_Hash (Decode (UTF8 (Path)), Hash);
-      Add_FTS (Crate, Path, Filename, Hash, Text);
+      Add_Content (This, Hash, Text);
+      Add_Hash (This, Decode (UTF8 (Path)), Hash);
+      Add_FTS (This, Crate, Path, Filename, Hash, Text);
    end Add;
 
-   procedure Close is
+   procedure Close
+      (This : in out Session)
+   is
       use type Sqlite.Statement;
    begin
-      Sqlite.Finalize (DB, Select_FTS_Stmt);
-      Sqlite.Finalize (DB, Select_Hash_Stmt);
-      Sqlite.Finalize (DB, Select_Content_Stmt);
+      for Query in This.Stmt'Range loop
+         if This.Stmt (Query) /= null then
+            Sqlite.Finalize (This.DB, This.Stmt (Query));
+         end if;
+      end loop;
 
-      if Insert_FTS_Stmt /= null then
-         Sqlite.Finalize (DB, Insert_FTS_Stmt);
-      end if;
-
-      if Insert_Hash_Stmt /= null then
-         Sqlite.Finalize (DB, Insert_Hash_Stmt);
-      end if;
-
-      if Insert_Content_Stmt /= null then
-         Sqlite.Finalize (DB, Insert_Content_Stmt);
-      end if;
-
-      Sqlite.Close (DB);
+      Sqlite.Close (This.DB);
    end Close;
 
 end Codesearch.Database;

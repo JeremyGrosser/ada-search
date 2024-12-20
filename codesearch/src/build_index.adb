@@ -8,6 +8,7 @@ with Ada.Text_IO;
 
 procedure Build_Index is
    Base_Dir : constant String := "source/alire-20241219/";
+   DB : Codesearch.Database.Session;
 
    function Read_File
       (Path : String)
@@ -53,7 +54,8 @@ procedure Build_Index is
             end if;
 
             Codesearch.Database.Add
-               (Crate    => Crate,
+               (This     => DB,
+                Crate    => Crate,
                 Path     => Full_Name,
                 Filename => Simple_Name (Full_Name),
                 Text     => Text);
@@ -91,7 +93,7 @@ procedure Build_Index is
 begin
    Codesearch.File.Set_Working_Directory;
    Codesearch.Database.Create;
-   Codesearch.Database.Open (Read_Only => False);
+   DB := Codesearch.Database.Open (Read_Only => False);
    Walk (Base_Dir);
-   Codesearch.Database.Close;
+   Codesearch.Database.Close (DB);
 end Build_Index;

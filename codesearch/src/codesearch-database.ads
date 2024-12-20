@@ -1,4 +1,5 @@
 with Codesearch.Strings; use Codesearch.Strings;
+private with Sqlite;
 
 package Codesearch.Database
    with Elaborate_Body
@@ -16,23 +17,57 @@ is
    subtype Search_Result_Index is Positive range 1 .. 250;
    type Search_Results is array (Search_Result_Index range <>) of Search_Result;
 
+   type Session is private;
+
    procedure Create;
 
-   procedure Open
-      (Read_Only : Boolean := True);
+   function Open
+      (Read_Only : Boolean := True)
+      return Session;
 
    procedure Search
-      (Query   : Unicode;
+      (This    : Session;
+       Query   : Unicode;
        Results : out Search_Results;
        Last    : out Natural);
 
    procedure Add
-      (Crate, Path, Filename, Text : String);
+      (This : in out Session;
+       Crate, Path, Filename, Text : String);
 
    function Get_Text
-      (Path : Unicode)
+      (This : Session;
+       Path : Unicode)
       return String;
 
-   procedure Close;
+   procedure Close
+      (This : in out Session);
+
+private
+
+   type Query_Type is
+      (Create_FTS,
+       Create_Path_Hash,
+       Create_Content,
+
+       Insert_FTS,
+       Insert_Path_Hash,
+       Insert_Content,
+
+       Select_FTS,
+       Select_Path_Hash,
+       Select_Content);
+
+   subtype Create_Query is Query_Type range Create_FTS .. Create_Content;
+   subtype Insert_Query is Query_Type range Insert_FTS .. Insert_Content;
+   subtype Select_Query is Query_Type range Select_FTS .. Select_Content;
+
+   type Statements is array (Query_Type) of Sqlite.Statement;
+
+   type Session is record
+      DB   : Sqlite.Connection;
+      Stmt : Statements;
+      Insert_Row_Id : Natural;
+   end record;
 
 end Codesearch.Database;

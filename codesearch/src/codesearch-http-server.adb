@@ -89,7 +89,8 @@ package body Codesearch.HTTP.Server is
    end Parse_Request;
 
    procedure Serve_Connection
-      (Sock : Socket_Type)
+      (Sock : Socket_Type;
+       DB   : Codesearch.Database.Session)
    is
       Req  : Request;
       Item : Stream_Element_Array (1 .. Stream_Element_Offset (Req.Item'Last))
@@ -108,7 +109,7 @@ package body Codesearch.HTTP.Server is
          Resp : Response;
       begin
          Resp.Socket := Sock;
-         Codesearch.Service.Handle_Request (Req, Resp);
+         Codesearch.Service.Handle_Request (Req, Resp, DB);
       end;
       Close_Socket (Sock);
    exception
@@ -116,13 +117,15 @@ package body Codesearch.HTTP.Server is
          Close_Socket (Sock);
    end Serve_Connection;
 
-   procedure Run is
+   procedure Run
+      (DB : Codesearch.Database.Session)
+   is
       Addr        : Sock_Addr_Type;
       Client_Sock : Socket_Type;
    begin
       loop
          Accept_Socket (Listen_Sock, Client_Sock, Addr);
-         Serve_Connection (Client_Sock);
+         Serve_Connection (Client_Sock, DB);
       end loop;
    exception
       when Socket_Error =>

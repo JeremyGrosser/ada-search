@@ -8,7 +8,8 @@ with URI;
 
 procedure Source_Highlight
    (Request  : Codesearch.HTTP.Request;
-    Response : in out Codesearch.HTTP.Response)
+    Response : in out Codesearch.HTTP.Response;
+    DB       : Codesearch.Database.Session)
 is
    package HTTP renames Codesearch.HTTP;
    package File renames Codesearch.File;
@@ -18,7 +19,7 @@ is
    Basename : constant Unicode := Remove_Prefix (Remove_Suffix (P, ".html"), "/");
 begin
    declare
-      Text : constant String := Codesearch.Database.Get_Text (Basename);
+      Text : constant String := Codesearch.Database.Get_Text (DB, Basename);
    begin
       if Text = "" then
          HTTP.Set_Status (Response, 404, "Not Found");

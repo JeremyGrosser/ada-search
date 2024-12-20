@@ -8,10 +8,10 @@ with URI;
 
 procedure Index
    (Request  : Codesearch.HTTP.Request;
-    Response : in out Codesearch.HTTP.Response)
+    Response : in out Codesearch.HTTP.Response;
+    DB       : Codesearch.Database.Session)
 is
    package HTTP renames Codesearch.HTTP;
-   package DB renames Codesearch.Database;
    package Str renames Codesearch.Strings;
    package File renames Codesearch.File;
    package Template renames Codesearch.Template;
@@ -22,11 +22,12 @@ begin
    Codesearch.File.Set_Working_Directory;
    if P = "/" and then Q'Length > 0 then
       declare
-         Results  : DB.Search_Results (1 .. 250);
+         Results  : Codesearch.Database.Search_Results (1 .. 250);
          Last     : Natural;
       begin
-         DB.Search
-            (Query   => Str.Decode (Str.UTF8 (Q)),
+         Codesearch.Database.Search
+            (This    => DB,
+             Query   => Str.Decode (Str.UTF8 (Q)),
              Results => Results,
              Last    => Last);
          if Last > 0 then

@@ -1,4 +1,5 @@
 with Codesearch.HTTP;
+with Codesearch.Database;
 
 package Codesearch.Service is
 
@@ -6,6 +7,7 @@ package Codesearch.Service is
 
    procedure Handle_Request
       (Request  : HTTP.Request;
-       Response : in out HTTP.Response);
+       Response : in out HTTP.Response;
+       DB       : Codesearch.Database.Session);
 
 end Codesearch.Service;
