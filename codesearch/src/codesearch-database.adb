@@ -308,10 +308,13 @@ package body Codesearch.Database is
       Add_FTS (Crate, Path, Filename, Hash, Text);
    end Add;
 
-   procedure Try_Close is
+   procedure Close is
       use type Sqlite.Statement;
    begin
       Sqlite.Finalize (DB, Select_FTS_Stmt);
+      Sqlite.Finalize (DB, Select_Hash_Stmt);
+      Sqlite.Finalize (DB, Select_Content_Stmt);
+
       if Insert_FTS_Stmt /= null then
          Sqlite.Finalize (DB, Insert_FTS_Stmt);
       end if;
@@ -319,19 +322,12 @@ package body Codesearch.Database is
       if Insert_Hash_Stmt /= null then
          Sqlite.Finalize (DB, Insert_Hash_Stmt);
       end if;
-      Sqlite.Close (DB);
-   end Try_Close;
 
-   procedure Close is
-   begin
-      loop
-         begin
-            Try_Close;
-         exception when Sqlite.Database_Error =>
-            null;
-         end;
-         exit when not Sqlite.Is_Open (DB);
-      end loop;
+      if Insert_Content_Stmt /= null then
+         Sqlite.Finalize (DB, Insert_Content_Stmt);
+      end if;
+
+      Sqlite.Close (DB);
    end Close;
 
 end Codesearch.Database;
