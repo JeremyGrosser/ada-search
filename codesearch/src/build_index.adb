@@ -3,14 +3,11 @@ with Ada.Streams;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 with Codesearch.Database;
-with Codesearch.Blobstore;
 with Codesearch.File;
-with SHA3;
-with Hex_Format_8;
 with Ada.Text_IO;
 
 procedure Build_Index is
-   Base_Dir : constant String := "source/alire-20240227/";
+   Base_Dir : constant String := "source/alire-20241219/";
 
    function Read_File
       (Path : String)
@@ -27,57 +24,29 @@ procedure Build_Index is
       return Text;
    end Read_File;
 
-   function To_String
-      (Digest : SHA3.SHA3_256.Digest_Type)
-      return String
-   is
-      use Hex_Format_8;
-      S : String (1 .. Digest'Length * 2);
-      I : Positive := S'First;
-   begin
-      for D of Digest loop
-         S (I .. I + 1) := Hex (D);
-         I := I + 2;
-      end loop;
-      return S;
-   end To_String;
-
-   function Content_Hash
-      (Text : String)
-      return String
-   is
-      use SHA3.SHA3_256;
-      Input  : Byte_Array (1 .. Text'Length)
-         with Import, Address => Text'Address;
-      Digest : Digest_Type;
-      Ctx    : Context;
-   begin
-      Init (Ctx);
-      Update (Ctx, Input);
-      Final (Ctx, Digest);
-      return To_String (Digest);
-   end Content_Hash;
-
    function Ends_With
       (S : String;
        Suffix : String)
        return Boolean
    is (S'Length >= Suffix'Length and then S (S'Last - Suffix'Length + 1 .. S'Last) = Suffix);
 
+   function Should_Index
+      (Name : String)
+      return Boolean
+   is (Ends_With (Name, ".ads") or else
+       Ends_With (Name, ".adb") or else
+       Ends_With (Name, ".ada"));
+
    procedure Index_File
       (Full_Name : String)
    is
    begin
-      if         Ends_With (Full_Name, ".ads")
-         or else Ends_With (Full_Name, ".adb")
-         or else Ends_With (Full_Name, ".ada")
-      then
-         --  Put_Line (Full_Name);
+      if Should_Index (Full_Name) then
+         Ada.Text_IO.Put_Line (Full_Name);
          declare
             Trimmed : constant String := Full_Name (Full_Name'First + Base_Dir'Length .. Full_Name'Last);
             Crate   : constant String := Trimmed (Trimmed'First .. Ada.Strings.Fixed.Index (Trimmed, "/") - 1);
             Text    : constant String := Read_File (Full_Name);
-            Hash    : constant String := Content_Hash (Text);
          begin
             if Text'Length = 0 then
                return;
@@ -87,13 +56,7 @@ procedure Build_Index is
                (Crate    => Crate,
                 Path     => Full_Name,
                 Filename => Simple_Name (Full_Name),
-                Hash     => Hash,
                 Text     => Text);
-            if not Codesearch.Blobstore.Exists (Hash) then
-               Codesearch.Blobstore.Put
-                  (Id   => Hash,
-                   Data => Text);
-            end if;
          end;
       end if;
    end Index_File;

@@ -26,16 +26,12 @@ is
        Results : out Search_Results;
        Last    : out Natural);
 
-   function Get_Hash
+   procedure Add
+      (Crate, Path, Filename, Text : String);
+
+   function Get_Text
       (Path : Unicode)
       return String;
-
-   procedure Add_Hash
-      (Path : Unicode;
-       Hash : String);
-
-   procedure Add
-      (Crate, Path, Filename, Hash, Text : String);
 
    procedure Close;
 

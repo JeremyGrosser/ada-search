@@ -8,7 +8,6 @@ project Codesearch is
    for Exec_Dir use "bin";
    for Main use (
       "build_index.adb",
-      "fill_blobstore.adb",
       "main.adb"
    );
 

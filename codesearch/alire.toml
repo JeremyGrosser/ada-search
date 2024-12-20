@@ -9,7 +9,7 @@ licenses = "BSD-3-Clause"
 website = ""
 tags = []
 
-executables = ["codesearch", "build_index", "fill_blobstore"]
+executables = ["codesearch", "build_index"]
 
 [[depends-on]]
 sqlite3 = "^3.42.0"
