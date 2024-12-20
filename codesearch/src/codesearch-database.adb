@@ -37,6 +37,9 @@ package body Codesearch.Database is
             return "SELECT data FROM content WHERE hash=? LIMIT 1";
          when Create_Content_Index =>
             return "CREATE INDEX content_idx ON content (hash)";
+
+         when Select_Last_Row_Id =>
+            return "SELECT rowid FROM f ORDER BY rowid DESC LIMIT 1";
       end case;
    end SQL;
 
@@ -80,6 +83,23 @@ package body Codesearch.Database is
       Close (S);
    end Create;
 
+   function Last_Row_Id
+      (This : Session)
+      return Natural
+   is
+      Stmt : Sqlite.Statement renames This.Stmt (Select_Last_Row_Id);
+      use type Sqlite.Result_Code;
+      Status : Sqlite.Result_Code;
+   begin
+      Sqlite.Reset (This.DB, Stmt);
+      Status := Sqlite.Step (This.DB, Stmt);
+      if Status = Sqlite.SQLITE_ROW then
+         return Sqlite.To_Integer (Stmt, 0);
+      else
+         raise Program_Error with "Select last row id returned error: " & Status'Image;
+      end if;
+   end Last_Row_Id;
+
    function Open
       (Read_Only : Boolean := True)
       return Session
@@ -106,6 +126,7 @@ package body Codesearch.Database is
          for Query in Insert_Query'Range loop
             This.Stmt (Query) := Sqlite.Prepare (This.DB, SQL (Query));
          end loop;
+         This.Insert_Row_Id := Last_Row_Id (This) + 1;
       end if;
 
       return This;

@@ -36,9 +36,9 @@ begin
             Link     : constant Unicode := "/" & Remove_Suffix (Basename, ".html");
          begin
             if Ends_With (Basename, ".ads.html") and then Codesearch.Database.Exists (DB, Remove_Suffix (Basename, ".ads.html") & ".adb") then
-               Insert (Env, "related", " (<a href=""" & Remove_Suffix (Link, ".ads") & ".adb.html"">body</a>)");
+               Insert (Env, "related", "<a href=""" & Remove_Suffix (Link, ".ads") & ".adb.html"">go to body</a>");
             elsif Ends_With (Basename, ".adb.html") and then Codesearch.Database.Exists (DB, Remove_Suffix (Basename, ".adb.html") & ".ads") then
-               Insert (Env, "related", " (<a href=""" & Remove_Suffix (Link, ".adb") & ".ads.html"">spec</a>)");
+               Insert (Env, "related", "<a href=""" & Remove_Suffix (Link, ".adb") & ".ads.html"">go to spec</a>");
             else
                Insert (Env, "related", "");
             end if;

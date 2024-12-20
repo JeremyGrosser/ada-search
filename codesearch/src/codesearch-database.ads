@@ -65,13 +65,14 @@ private
        Insert_FTS,
        Insert_Path_Hash,
        Insert_Content,
+       Select_Last_Row_Id,
 
        Select_FTS,
        Select_Path_Hash,
        Select_Content);
 
    subtype Create_Query is Query_Type range Create_FTS .. Create_Content_Index;
-   subtype Insert_Query is Query_Type range Insert_FTS .. Insert_Content;
+   subtype Insert_Query is Query_Type range Insert_FTS .. Select_Last_Row_Id;
    subtype Select_Query is Query_Type range Select_FTS .. Select_Content;
 
    type Statements is array (Query_Type) of Sqlite.Statement;

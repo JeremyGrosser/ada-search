@@ -3,6 +3,7 @@ with Ada.Streams;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 with Codesearch.Database;
+with Codesearch.Strings;
 with Codesearch.File;
 with Ada.Text_IO;
 with Ada.Command_Line;
@@ -36,9 +37,10 @@ procedure Build_Index is
    function Should_Index
       (Name : String)
       return Boolean
-   is (Ends_With (Name, ".ads") or else
+   is ((Ends_With (Name, ".ads") or else
        Ends_With (Name, ".adb") or else
-       Ends_With (Name, ".ada"));
+       Ends_With (Name, ".ada")) and then
+       not Codesearch.Database.Exists (DB, Codesearch.Strings.Decode (Codesearch.Strings.UTF8 (Name))));
 
    procedure Index_File
       (Full_Name : String)
@@ -71,7 +73,7 @@ procedure Build_Index is
       Search : Search_Type;
       Inode : Directory_Entry_Type;
    begin
-      Ada.Text_IO.Put_Line (Path);
+      --  Ada.Text_IO.Put_Line (Path);
       Start_Search (Search,
          Directory => Path,
          Pattern => "",
