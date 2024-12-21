@@ -18,7 +18,9 @@ package body Codesearch.Database is
             return "INSERT INTO f(rowid, crate, path, filename, hash, text) VALUES (?, ?, ?, ?, ?, ?)";
          when Select_FTS =>
             return "SELECT rowid, crate, path, filename, hash, rank FROM f " &
-            "WHERE text MATCH ? ORDER BY rank LIMIT 250";
+            "WHERE text MATCH ? " &
+            "GROUP BY crate, filename " &
+            "ORDER BY rank DESC, rowid DESC LIMIT 250";
 
          when Create_Path_Hash =>
             return "CREATE TABLE path_hash (path TEXT, hash TEXT)";
@@ -96,7 +98,7 @@ package body Codesearch.Database is
       if Status = Sqlite.SQLITE_ROW then
          return Sqlite.To_Integer (Stmt, 0);
       else
-         raise Program_Error with "Select last row id returned error: " & Status'Image;
+         return 0;
       end if;
    end Last_Row_Id;
 
@@ -346,18 +348,21 @@ package body Codesearch.Database is
    is
       Text_Hash : constant String := Content_Hash (Text);
       Text_Path : constant Unicode := Decode (UTF8 (Path));
-
-      Highlight : constant String := Codesearch.Syntax.Highlight (Text);
-      Highlight_Hash : constant String := Content_Hash (Highlight);
-      Highlight_Path : constant Unicode := Text_Path & ".html";
    begin
       Add_Content (This, Text_Hash, Text);
-      Add_Hash (This, Text_Path, Text_Hash);
-
-      Add_Content (This, Highlight_Hash, Highlight);
-      Add_Hash (This, Highlight_Path, Highlight_Hash);
-
       Add_FTS (This, Crate, Path, Filename, Text_Hash, Text);
+
+      if not Content_Exists (This, Text_Hash) then
+         Add_Hash (This, Text_Path, Text_Hash);
+         declare
+            Highlight : constant String := Codesearch.Syntax.Highlight (Text);
+            Highlight_Hash : constant String := Content_Hash (Highlight);
+            Highlight_Path : constant Unicode := Text_Path & ".html";
+         begin
+            Add_Content (This, Highlight_Hash, Highlight);
+            Add_Hash (This, Highlight_Path, Highlight_Hash);
+         end;
+      end if;
    end Add;
 
    procedure Close

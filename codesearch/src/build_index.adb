@@ -6,11 +6,9 @@ with Codesearch.Database;
 with Codesearch.Strings;
 with Codesearch.File;
 with Ada.Text_IO;
-with Ada.Command_Line;
 
 procedure Build_Index is
-   --  Base_Dir : constant String := "source/alire-20241219/";
-   Base_Dir : constant String := Ada.Command_Line.Argument (1);
+   Base_Dir : constant String := "source/alire-20241219/";
    DB : Codesearch.Database.Session;
 
    function Read_File
