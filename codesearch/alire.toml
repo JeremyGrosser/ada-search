@@ -27,4 +27,4 @@ sqlite3.Enable_FTS5 = true
 sqlite3.THREADSAFE = 1
 
 [[pins]]
-sqlite3 = { path='../../sqlite3_binding' }
+sqlite3 = { url='https://github.com/JeremyGrosser/sqlite3_binding.git' }
