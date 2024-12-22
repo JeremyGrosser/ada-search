@@ -1,10 +1,7 @@
-with Codesearch.Database;
-
 package Codesearch.HTTP.Server is
 
    procedure Bind;
-   procedure Run
-      (DB : Codesearch.Database.Session);
+   procedure Run;
    procedure Stop;
 
 end Codesearch.HTTP.Server;

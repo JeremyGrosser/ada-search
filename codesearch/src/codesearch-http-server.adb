@@ -1,11 +1,14 @@
 with Ada.Streams; use Ada.Streams;
+with Ada.Containers.Vectors;
 with GNAT.Sockets; use GNAT.Sockets;
 with Codesearch.Service;
+with Codesearch.Database;
+with Ada.Text_IO;
+with Ada.Real_Time;
 
 package body Codesearch.HTTP.Server is
 
    Listen_Sock : Socket_Type;
-   Running : Boolean := True;
 
    procedure Bind is
       Addr : constant Sock_Addr_Type :=
@@ -16,7 +19,7 @@ package body Codesearch.HTTP.Server is
       Create_Socket (Listen_Sock);
       Set_Socket_Option (Listen_Sock, Socket_Level, (Reuse_Address, True));
       Bind_Socket (Listen_Sock, Addr);
-      Listen_Socket (Listen_Sock);
+      Listen_Socket (Listen_Sock, 256);
    end Bind;
 
    function Index
@@ -118,27 +121,104 @@ package body Codesearch.HTTP.Server is
          Close_Socket (Sock);
    end Serve_Connection;
 
-   procedure Run
-      (DB : Codesearch.Database.Session)
-   is
-      Addr        : Sock_Addr_Type;
-      Client_Sock : Socket_Type;
+   package Socket_Vectors is new Ada.Containers.Vectors (Positive, Socket_Type);
+
+   protected Queue is
+      procedure Put
+         (Socket : Socket_Type);
+      entry Get
+         (Socket : out Socket_Type);
+
+      procedure Start;
+      procedure Stop;
+
+      function Is_Running
+         return Boolean;
+   private
+      Q : Socket_Vectors.Vector;
+      Running : Boolean := False;
+   end Queue;
+
+   protected body Queue is
+      procedure Put
+         (Socket : Socket_Type)
+      is
+      begin
+         Socket_Vectors.Append (Q, Socket);
+      end Put;
+
+      entry Get
+         (Socket : out Socket_Type)
+      when not Socket_Vectors.Is_Empty (Q)
+      is
+      begin
+         Socket := Socket_Vectors.First_Element (Q);
+         Socket_Vectors.Delete_First (Q);
+      end Get;
+
+      procedure Start is
+      begin
+         Running := True;
+      end Start;
+
+      procedure Stop is
+      begin
+         Running := False;
+      end Stop;
+
+      function Is_Running return Boolean is (Running);
+   end Queue;
+
+   task type Worker;
+
+   task body Worker is
+      DB   : Codesearch.Database.Session;
+      Sock : Socket_Type;
+
+      use Ada.Real_Time;
+      Start : Time;
+      Elapsed : Duration;
    begin
-      while Running loop
+      while not Queue.Is_Running loop
+         delay 0.1;
+      end loop;
+
+      DB := Codesearch.Database.Open (Read_Only => True);
+
+      while Queue.Is_Running loop
          begin
-            Accept_Socket (Listen_Sock, Client_Sock, Addr);
-            Serve_Connection (Client_Sock, DB);
+            Queue.Get (Sock);
+            Start := Clock;
+            Serve_Connection (Sock, DB);
+            Elapsed := To_Duration (Clock - Start);
+            Ada.Text_IO.Put_Line ("Complete in " & Elapsed'Image);
          exception
             when Socket_Error =>
                null;
          end;
       end loop;
+      Codesearch.Database.Close (DB);
+   end Worker;
+
+   procedure Run is
+      Pool : array (1 .. 4) of Worker;
+      Addr : Sock_Addr_Type;
+      Sock : Socket_Type;
+   begin
+      Queue.Start;
+      loop
+         Accept_Socket (Listen_Sock, Sock, Addr);
+         Queue.Put (Sock);
+      end loop;
+   exception
+      when Socket_Error =>
+         null;
    end Run;
 
    procedure Stop is
    begin
       Close_Socket (Listen_Sock);
-      Running := False;
+      Queue.Stop;
    end Stop;
 
 end Codesearch.HTTP.Server;

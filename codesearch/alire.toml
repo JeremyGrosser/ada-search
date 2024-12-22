@@ -22,8 +22,9 @@ libkeccak = "^3.0.0"
 [build-switches]
 release.optimization = ["-gnatn2", "-march=native", "-O3"]
 
-[[pins]]
-sqlite3 = { url='https://github.com/JeremyGrosser/sqlite3_binding.git' }
-
 [configuration.values]
 sqlite3.Enable_FTS5 = true
+sqlite3.THREADSAFE = 1
+
+[[pins]]
+sqlite3 = { path='../../sqlite3_binding' }
