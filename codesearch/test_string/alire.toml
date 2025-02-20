@@ -5,7 +5,7 @@ version = "0.1.0-dev"
 authors = ["Jeremy Grosser"]
 maintainers = ["Jeremy Grosser <jeremy@synack.me>"]
 maintainers-logins = ["JeremyGrosser"]
-licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+licenses = "AGPL-3.0-or-later"
 website = ""
 tags = []
 
