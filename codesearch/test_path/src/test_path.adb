@@ -1,3 +1,8 @@
+--
+--  Copyright (C) 2025 Jeremy Grosser <jeremy@synack.me>
+--
+--  SPDX-License-Identifier: AGPL-3.0-or-later
+--
 pragma Style_Checks ("M120");
 with Codesearch.Path; use Codesearch.Path;
 with Ada.Command_Line;

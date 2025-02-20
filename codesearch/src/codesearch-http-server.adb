@@ -1,3 +1,8 @@
+--
+--  Copyright (C) 2025 Jeremy Grosser <jeremy@synack.me>
+--
+--  SPDX-License-Identifier: AGPL-3.0-or-later
+--
 with Ada.Streams; use Ada.Streams;
 with Ada.Containers.Vectors;
 with GNAT.Sockets; use GNAT.Sockets;

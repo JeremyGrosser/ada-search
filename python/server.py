@@ -1,3 +1,8 @@
+#
+#  Copyright (C) 2025 Jeremy Grosser <jeremy@synack.me>
+#
+#  SPDX-License-Identifier: AGPL-3.0-or-later
+#
 from pygments import highlight
 from pygments.lexers import AdaLexer
 from pygments.formatters import HtmlFormatter

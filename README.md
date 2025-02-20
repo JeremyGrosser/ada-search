@@ -15,4 +15,4 @@ The HTTP server implementation is very experimental. No, I don't want to use you
 The code on the master branch shells out to `pygmentize` for source highlighting. This has some performance implications that are unacceptable in a production application. The `native-highlight` branch reimplements `Codesearch.Syntax` using libadalang's parser. It is very slow and I've not done a lot of digging as to why. It's probably allocating/copying memory somewhere it shouldn't.
 
 # License
-AGPLv3 for now. I might switch to a more liberal license later.
+AGPL-3.0-or-later for now. I might switch to a more liberal license later.

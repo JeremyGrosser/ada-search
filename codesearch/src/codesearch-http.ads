@@ -1,3 +1,8 @@
+--
+--  Copyright (C) 2025 Jeremy Grosser <jeremy@synack.me>
+--
+--  SPDX-License-Identifier: AGPL-3.0-or-later
+--
 with Codesearch.Strings;
 private with Ada.Strings.Equal_Case_Insensitive;
 private with Ada.Strings.Hash_Case_Insensitive;
