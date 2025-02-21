@@ -117,7 +117,7 @@ def application(environ, start_response):
         elif environ['PATH_INFO'].startswith('/source/alire-'):
             try:
                 path = environ['PATH_INFO'].split('/', 2)[-1]
-                path = os.path.abspath(os.path.join(basedir, path))
+                path = os.path.realpath(os.path.join(basedir, path))
                 if not path.startswith(basedir) or not allowed_extension(path):
                     start_response('404 Not Found', make_headers('text/plain;charset=utf-8'))
                     return [b'404 Not Found\r\n']
