@@ -7,6 +7,7 @@ from html.parser import HTMLParser
 from io import StringIO
 import wsgiref.simple_server
 import urllib.parse
+import functools
 import sqlite3
 import os.path
 import traceback
@@ -19,6 +20,10 @@ db = sqlite3.connect('file:index.db?mode=ro', uri=True)
 lexer = AdaLexer()
 highlight_style = get_style_by_name('tango')
 
+@functools.cache
+def read_resource(filename):
+    with open(filename, 'rb') as fd:
+        return fd.read()
 
 class MLStripper(HTMLParser):
     def __init__(self):
@@ -41,9 +46,8 @@ def strip_tags(html):
 
 def search(query):
     seen = set()
-    head = open('html/head.html', 'r').read()
-    tail = open('html/tail.html', 'r').read()
     query = strip_tags(query.strip('"\''))
+    head = read_resource('html/head.html').decode('utf-8')
     yield head.format(query=query).encode('utf-8')
     cur = db.cursor()
     try:
@@ -79,12 +83,13 @@ def search(query):
     if len(seen) == 0:
         yield b'No results!'
 
-    yield tail.encode('utf-8')
+    yield read_resource('html/tail.html')
     return
 
 
 def index():
-    return [open('html/index.html', 'rb').read()]
+    yield read_resource('html/index.html')
+    return
 
 
 def make_headers(content_type):
@@ -137,8 +142,8 @@ def application(environ, start_response):
                                 hl_lines = []
                             formatter = HtmlFormatter(linenos=True, cssclass="source", hl_lines=hl_lines, style=highlight_style)
                             html = highlight(fd.read(), lexer, formatter)
-                                
-                            template = open('html/highlight.html', 'r').read()
+
+                            template = read_resource('html/highlight.html').decode('utf8')
                             filename = path[len(basedir):].split('/', 2)[-1]
                             raw = environ['PATH_INFO'].rsplit('.', 1)[0]
                             data = template.format(filename=filename, raw=raw, code=html)
@@ -159,16 +164,16 @@ def application(environ, start_response):
                 return [b'500 Internal Server Error\r\n']
         elif environ['PATH_INFO'] == '/ada.svg':
             start_response('200 OK', make_headers('image/svg+xml'))
-            return [open('res/ada.svg', 'rb').read()]
+            return [read_resource('res/ada.svg')]
         elif environ['PATH_INFO'] == '/ada-dark.svg':
             start_response('200 OK', make_headers('image/svg+xml'))
-            return [open('res/ada-dark.svg', 'rb').read()]
+            return [read_resource('res/ada-dark.svg')]
         elif environ['PATH_INFO'] == '/search.css':
             start_response('200 OK', make_headers('text/css;charset=utf-8'))
-            return [open('res/search.css', 'rb').read()]
+            return [read_resource('res/search.css')]
         elif environ['PATH_INFO'] == '/robots.txt':
             start_response('200 OK', make_headers('text/plain;charset=utf-8'))
-            return [open('res/robots.txt', 'rb').read()]
+            return [read_resource('res/robots.txt')]
         start_response('404 Not Found', make_headers('text/plain;charset=utf-8'))
         return [b'404 Not Found\r\n']
     else:
