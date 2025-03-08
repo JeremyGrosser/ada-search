@@ -55,8 +55,7 @@ is
 private
 
    Max_Request_Length   : constant := 4096;
-   Max_Response_Length  : constant := 4096;
-   --  Status line and headers only, does not include payload
+   Max_Response_Length  : constant := 128 * 1024;
 
    type Span is record
       First, Last : Natural := 0;
@@ -91,5 +90,11 @@ private
       (Req : Request;
        Sp  : Span)
        return String;
+
+   procedure Reset
+      (Req : in out Request);
+
+   procedure Reset
+      (Resp : in out Response);
 
 end Codesearch.HTTP;

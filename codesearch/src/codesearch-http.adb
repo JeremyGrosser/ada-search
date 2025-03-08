@@ -107,14 +107,12 @@ package body Codesearch.HTTP is
       (This : in out Response;
        Data : String)
    is
-      Stream : constant GNAT.Sockets.Stream_Access := GNAT.Sockets.Stream (This.Socket);
    begin
       if not This.Started then
          Response_Buffers.Append (This.Buffer, CRLF);
-         String'Write (Stream, Response_Buffers.To_String (This.Buffer));
          This.Started := True;
       end if;
-      String'Write (Stream, Data);
+      Response_Buffers.Append (This.Buffer, Data);
    end Put_Raw;
 
    procedure Put
@@ -145,5 +143,22 @@ package body Codesearch.HTTP is
          return Req.Item (Sp.First .. Sp.Last);
       end if;
    end Get_String;
+
+   procedure Reset
+      (Req : in out Request)
+   is
+   begin
+      Req.Last := 0;
+      Req.End_Headers := 0;
+      Request_Header_Maps.Clear (Req.Headers);
+   end Reset;
+
+   procedure Reset
+      (Resp : in out Response)
+   is
+   begin
+      Resp.Started := False;
+      Response_Buffers.Delete (Resp.Buffer, 1, Response_Buffers.Length (Resp.Buffer));
+   end Reset;
 
 end Codesearch.HTTP;

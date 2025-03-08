@@ -1,31 +1,20 @@
+pragma Ada_2022;
 --
 --  Copyright (C) 2025 Jeremy Grosser <jeremy@synack.me>
 --
 --  SPDX-License-Identifier: AGPL-3.0-or-later
 --
 with Ada.Streams; use Ada.Streams;
-with Ada.Containers.Vectors;
 with GNAT.Sockets; use GNAT.Sockets;
+with Ada.Containers.Ordered_Maps;
 with Codesearch.Service;
 with Codesearch.Database;
+with Codesearch.IO;
 with Ada.Text_IO;
-with Ada.Real_Time;
 
 package body Codesearch.HTTP.Server is
 
-   Listen_Sock : Socket_Type;
-
-   procedure Bind is
-      Addr : constant Sock_Addr_Type :=
-         (Addr => <>,
-          Port => 9999,
-          Family => Family_Inet);
-   begin
-      Create_Socket (Listen_Sock);
-      Set_Socket_Option (Listen_Sock, Socket_Level, (Reuse_Address, True));
-      Bind_Socket (Listen_Sock, Addr);
-      Listen_Socket (Listen_Sock, 256);
-   end Bind;
+   DB : Codesearch.Database.Session;
 
    function Index
       (Req   : Request;
@@ -97,133 +86,156 @@ package body Codesearch.HTTP.Server is
       end;
    end Parse_Request;
 
-   procedure Serve_Connection
-      (Sock : Socket_Type;
-       DB   : Codesearch.Database.Session)
+   function "<" (Left, Right : Socket_Type)
+      return Boolean
+   is (To_C (Left) < To_C (Right));
+
+   package Request_Maps is new Ada.Containers.Ordered_Maps
+      (Key_Type     => Socket_Type,
+       Element_Type => Request);
+   Requests : Request_Maps.Map;
+
+   package Response_Maps is new Ada.Containers.Ordered_Maps
+      (Key_Type => Socket_Type,
+       Element_Type => Response);
+   Responses : Response_Maps.Map;
+
+   procedure On_Readable
+      (Sock : Socket_Type);
+   procedure On_Writable
+      (Sock : Socket_Type);
+   procedure On_Error
+      (Sock : Socket_Type);
+
+   procedure On_Request
+      (Req  : Request;
+       Sock : Socket_Type)
    is
-      Req  : Request;
+      Resp : constant Response_Maps.Reference_Type := Response_Maps.Reference (Responses, Sock);
+   begin
+      Resp.Socket := Sock;
+      Codesearch.Service.Handle_Request (Req, Resp, DB);
+      if Response_Buffers.Length (Resp.Buffer) > 0 then
+         Codesearch.IO.Unregister (Sock);
+         Codesearch.IO.Register (Sock,
+            Readable => On_Readable'Access,
+            Writable => On_Writable'Access,
+            Error    => On_Error'Access);
+      end if;
+   end On_Request;
+
+   procedure On_Readable
+      (Sock : Socket_Type)
+   is
+      use Request_Maps;
+      Req : constant Reference_Type := Reference (Requests, Sock);
       Item : Stream_Element_Array (1 .. Stream_Element_Offset (Req.Item'Last))
          with Address => Req.Item'Address;
       Last : Stream_Element_Offset := 0;
    begin
-      loop
-         Receive_Socket (Sock, Item (Last + 1 .. Item'Last), Last);
-         exit when Last = 0;
-         Req.Last := Natural (Last);
-         Parse_Request (Req);
-         exit when Req.End_Headers > 0;
-      end loop;
+      Ada.Text_IO.Put_Line ("recv " & Sock'Image);
+      Receive_Socket (Sock, Item (Last + 1 .. Item'Last), Last);
+      Req.Last := Natural (Last);
+      if Req.Last = 0 then
+         On_Error (Sock);
+         return;
+      end if;
 
-      declare
-         Resp : Response;
-      begin
-         Resp.Socket := Sock;
-         Codesearch.Service.Handle_Request (Req, Resp, DB);
-      end;
-      Close_Socket (Sock);
+      Parse_Request (Req);
+
+      if Req.End_Headers > 0 then
+         On_Request (Req, Sock);
+      end if;
    exception
       when Parse_Error =>
+         On_Error (Sock);
+   end On_Readable;
+
+   procedure On_Writable
+      (Sock : Socket_Type)
+   is
+      Resp : constant Response_Maps.Reference_Type := Response_Maps.Reference (Responses, Sock);
+      Str  : constant String := Response_Buffers.To_String (Resp.Buffer);
+      Item : Stream_Element_Array (1 .. Stream_Element_Offset (Str'Length))
+         with Address => Str'Address;
+      Last : Stream_Element_Offset := 0;
+   begin
+      Send_Socket (Sock, Item, Last);
+      Ada.Text_IO.Put_Line ("send " & Sock'Image & Last'Image);
+      Response_Buffers.Delete (Resp.Buffer, 1, Natural (Last));
+      if Response_Buffers.Length (Resp.Buffer) = 0 then
          Close_Socket (Sock);
-   end Serve_Connection;
-
-   package Socket_Vectors is new Ada.Containers.Vectors (Positive, Socket_Type);
-
-   protected Queue is
-      procedure Put
-         (Socket : Socket_Type);
-      entry Get
-         (Socket : out Socket_Type);
-
-      procedure Start;
-      procedure Stop;
-
-      function Is_Running
-         return Boolean;
-   private
-      Q : Socket_Vectors.Vector;
-      Running : Boolean := False;
-   end Queue;
-
-   protected body Queue is
-      procedure Put
-         (Socket : Socket_Type)
-      is
-      begin
-         Socket_Vectors.Append (Q, Socket);
-      end Put;
-
-      entry Get
-         (Socket : out Socket_Type)
-      when not Socket_Vectors.Is_Empty (Q)
-      is
-      begin
-         Socket := Socket_Vectors.First_Element (Q);
-         Socket_Vectors.Delete_First (Q);
-      end Get;
-
-      procedure Start is
-      begin
-         Running := True;
-      end Start;
-
-      procedure Stop is
-      begin
-         Running := False;
-      end Stop;
-
-      function Is_Running return Boolean is (Running);
-   end Queue;
-
-   task type Worker;
-
-   task body Worker is
-      DB   : Codesearch.Database.Session;
-      Sock : Socket_Type;
-
-      use Ada.Real_Time;
-      Start : Time;
-      Elapsed : Duration;
-   begin
-      while not Queue.Is_Running loop
-         delay 0.1;
-      end loop;
-
-      DB := Codesearch.Database.Open (Read_Only => True);
-
-      while Queue.Is_Running loop
-         begin
-            Queue.Get (Sock);
-            Start := Clock;
-            Serve_Connection (Sock, DB);
-            Elapsed := To_Duration (Clock - Start);
-            Ada.Text_IO.Put_Line ("Complete in " & Elapsed'Image);
-         exception
-            when Socket_Error =>
-               null;
-         end;
-      end loop;
-      Codesearch.Database.Close (DB);
-   end Worker;
-
-   procedure Run is
-      Pool : array (1 .. 4) of Worker;
-      Addr : Sock_Addr_Type;
-      Sock : Socket_Type;
-   begin
-      Queue.Start;
-      loop
-         Accept_Socket (Listen_Sock, Sock, Addr);
-         Queue.Put (Sock);
-      end loop;
+      end if;
    exception
       when Socket_Error =>
-         null;
-   end Run;
+         On_Error (Sock);
+   end On_Writable;
 
-   procedure Stop is
+   procedure On_Error
+      (Sock : Socket_Type)
+   is
    begin
-      Close_Socket (Listen_Sock);
-      Queue.Stop;
-   end Stop;
+      Close_Socket (Sock);
+      Ada.Text_IO.Put_Line ("error " & Sock'Image);
+   end On_Error;
+
+   procedure On_Connect
+      (Listen_Sock : Socket_Type)
+   is
+      Sock : Socket_Type;
+      Addr : Sock_Addr_Type;
+   begin
+      Accept_Socket (Listen_Sock, Sock, Addr);
+
+      if not Request_Maps.Contains (Requests, Sock) then
+         declare
+            New_Request : Request;
+         begin
+            Request_Maps.Insert (Requests, Sock, New_Request);
+         end;
+      else
+         Reset (Request_Maps.Reference (Requests, Sock));
+      end if;
+
+      if not Response_Maps.Contains (Responses, Sock) then
+         declare
+            New_Response : Response;
+         begin
+            Response_Maps.Insert (Responses, Sock, New_Response);
+         end;
+      else
+         Reset (Response_Maps.Reference (Responses, Sock));
+      end if;
+
+      Codesearch.IO.Register (Sock,
+         Readable => On_Readable'Access,
+         Writable => null,
+         Error    => On_Error'Access);
+      Ada.Text_IO.Put_Line ("Connect " & Image (Addr));
+   end On_Connect;
+
+   procedure Bind is
+      Addr : constant Sock_Addr_Type :=
+         (Addr => <>,
+          Port => 9999,
+          Family => Family_Inet);
+      Listen_Sock : Socket_Type;
+   begin
+      Create_Socket (Listen_Sock);
+      Set_Socket_Option (Listen_Sock, Socket_Level, (Reuse_Address, True));
+      Bind_Socket (Listen_Sock, Addr);
+      Listen_Socket (Listen_Sock, 256);
+      Codesearch.IO.Register (Listen_Sock,
+         Readable => On_Connect'Access,
+         Writable => null,
+         Error    => null);
+      Ada.Text_IO.Put_Line ("Bind " & Image (Addr));
+   end Bind;
+
+   procedure Run is
+   begin
+      DB := Codesearch.Database.Open (Read_Only => True);
+      Codesearch.IO.Run;
+   end Run;
 
 end Codesearch.HTTP.Server;
