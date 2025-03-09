@@ -6,12 +6,17 @@
 with Ada.Streams; use Ada.Streams;
 with GNAT.Sockets; use GNAT.Sockets;
 with Ada.Containers.Ordered_Maps;
+with Ada.Calendar;
 with Codesearch.Service;
 with Codesearch.Database;
 with Codesearch.IO;
 with Ada.Text_IO;
 
 package body Codesearch.HTTP.Server is
+
+   Request_Timeout   : constant Duration := 10.0;
+   Response_Timeout  : constant Duration := 10.0;
+   Idle_Timeout      : constant Duration := 60.0;
 
    DB : Codesearch.Database.Session;
 
@@ -20,8 +25,10 @@ package body Codesearch.HTTP.Server is
    is (To_C (Left) < To_C (Right));
 
    type Session_Type is record
-      Req  : Request := (others => <>);
-      Resp : Response := (others => <>);
+      Req            : Request := (others => <>);
+      Resp           : Response := (others => <>);
+      Expires_At     : Ada.Calendar.Time := Ada.Calendar.Clock;
+      Timers_Enabled : Boolean := True;
    end record;
 
    package Session_Maps is new Ada.Containers.Ordered_Maps
@@ -35,6 +42,34 @@ package body Codesearch.HTTP.Server is
       (Sock : Socket_Type);
    procedure On_Error
       (Sock : Socket_Type);
+   procedure On_Timeout
+      (Sock : Socket_Type);
+
+   procedure Set_Timeout
+      (Session : in out Session_Type;
+       Sock    : Socket_Type;
+       After   : Duration)
+   is
+      use Ada.Calendar;
+   begin
+      Session.Expires_At := Clock + After;
+      Codesearch.IO.Set_Timeout
+         (Desc     => Sock,
+          After    => After,
+          Callback => On_Timeout'Access);
+   end Set_Timeout;
+
+   procedure On_Timeout
+      (Sock : Socket_Type)
+   is
+      use Ada.Calendar;
+      Session : constant Session_Maps.Reference_Type := Session_Maps.Reference (Sessions, Sock);
+   begin
+      if Session.Timers_Enabled and then Clock > Session.Expires_At then
+         Session.Timers_Enabled := False;
+         Close_Socket (Sock);
+      end if;
+   end On_Timeout;
 
    procedure On_Request
       (Session : in out Session_Type;
@@ -52,6 +87,7 @@ package body Codesearch.HTTP.Server is
 
       if Response_Buffers.Length (Session.Resp.Buffer) > 0 then
          Codesearch.IO.Set_Triggers (Sock, Readable => True, Writable => True, Error => True);
+         Set_Timeout (Session, Sock, Response_Timeout);
       end if;
    end On_Request;
 
@@ -66,6 +102,7 @@ package body Codesearch.HTTP.Server is
       Receive_Socket (Sock, Item (Last + 1 .. Item'Last), Last);
       Session.Req.Last := Natural (Last);
       if Session.Req.Last = 0 then
+         Session.Timers_Enabled := False;
          Close_Socket (Sock);
          return;
       end if;
@@ -100,6 +137,7 @@ package body Codesearch.HTTP.Server is
              Readable => True,
              Writable => False,
              Error    => True);
+         Set_Timeout (Session, Sock, Idle_Timeout);
       end if;
    exception
       when Socket_Error =>
@@ -110,8 +148,10 @@ package body Codesearch.HTTP.Server is
    procedure On_Error
       (Sock : Socket_Type)
    is
+      Session : constant Session_Maps.Reference_Type := Session_Maps.Reference (Sessions, Sock);
    begin
       Ada.Text_IO.Put_Line ("Error");
+      Session.Timers_Enabled := False;
       Close_Socket (Sock);
    end On_Error;
 
@@ -125,9 +165,10 @@ package body Codesearch.HTTP.Server is
 
       if not Session_Maps.Contains (Sessions, Sock) then
          declare
-            New_Session : constant Session_Type := (others => <>);
+            New_Session : Session_Type := (others => <>);
          begin
             Session_Maps.Insert (Sessions, Sock, New_Session);
+            Set_Timeout (New_Session, Sock, Request_Timeout);
          end;
       else
          declare
@@ -135,6 +176,7 @@ package body Codesearch.HTTP.Server is
          begin
             Reset (Session.Req);
             Reset (Session.Resp);
+            Set_Timeout (Session, Sock, Request_Timeout);
          end;
       end if;
 

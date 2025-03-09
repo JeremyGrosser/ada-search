@@ -20,6 +20,11 @@ package Codesearch.IO is
    procedure Unregister
       (Desc : Descriptor);
 
+   procedure Set_Timeout
+      (After    : Duration;
+       Callback : Event_Callback;
+       Desc     : Descriptor);
+
    procedure Run;
 
 end Codesearch.IO;

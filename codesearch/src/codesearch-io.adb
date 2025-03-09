@@ -1,4 +1,6 @@
 with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Ordered_Sets;
+with Ada.Calendar;
 with Interfaces;
 with Epoll;
 
@@ -78,6 +80,53 @@ package body Codesearch.IO is
       Epoll.Control (EP, Desc, Epoll.Delete, null);
    end Unregister;
 
+   type Timer is record
+      Expires_At  : Ada.Calendar.Time;
+      Callback    : Event_Callback;
+      Desc        : Descriptor;
+   end record;
+
+   function "<" (Left, Right : Timer)
+      return Boolean
+   is
+      use Ada.Calendar;
+   begin
+      return Left.Expires_At < Right.Expires_At;
+   end "<";
+
+   package Timer_Sets is new Ada.Containers.Ordered_Sets
+      (Element_Type => Timer);
+   Timers : Timer_Sets.Set;
+
+   procedure Set_Timeout
+      (After    : Duration;
+       Callback : Event_Callback;
+       Desc     : Descriptor)
+   is
+      use Ada.Calendar;
+      T : Timer;
+   begin
+      T.Expires_At := Clock + After;
+      T.Callback := Callback;
+      T.Desc := Desc;
+      Timer_Sets.Insert (Timers, T);
+   end Set_Timeout;
+
+   procedure Poll_Timers is
+      use Timer_Sets;
+      use Ada.Calendar;
+      Now : constant Time := Clock;
+      T : Timer;
+   begin
+      loop
+         exit when Is_Empty (Timers);
+         T := First_Element (Timers);
+         exit when T.Expires_At > Now;
+         Delete_First (Timers);
+         T.Callback.all (T.Desc);
+      end loop;
+   end Poll_Timers;
+
    procedure Poll_Events is
       use Descriptor_Maps;
    begin
@@ -114,6 +163,7 @@ package body Codesearch.IO is
    procedure Run is
    begin
       loop
+         Poll_Timers;
          Poll_Events;
       end loop;
    end Run;
