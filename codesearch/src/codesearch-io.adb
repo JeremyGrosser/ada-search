@@ -1,6 +1,4 @@
-with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Ordered_Maps;
-with Ada.Real_Time;
 with Interfaces;
 with Epoll;
 
@@ -8,22 +6,9 @@ package body Codesearch.IO is
 
    EP : constant Epoll.Epoll_Descriptor := Epoll.Create;
 
-   type Timer is record
-      Callback    : Timer_Callback;
-      Expires_At  : Ada.Real_Time.Time;
-   end record;
-
    type Event_Callbacks is record
       Readable, Writable, Error : Event_Callback;
    end record;
-
-   function "<" (Left, Right : Timer)
-      return Boolean
-   is
-      use Ada.Real_Time;
-   begin
-      return Left.Expires_At < Right.Expires_At;
-   end "<";
 
    function "<" (Left, Right : Descriptor)
       return Boolean
@@ -33,14 +18,10 @@ package body Codesearch.IO is
       return To_C (Left) < To_C (Right);
    end "<";
 
-   package Timer_Sets is new Ada.Containers.Ordered_Sets
-      (Element_Type  => Timer);
-
    package Descriptor_Maps is new Ada.Containers.Ordered_Maps
       (Key_Type      => Descriptor,
        Element_Type  => Event_Callbacks);
 
-   Timers      : Timer_Sets.Set;
    Descriptors : Descriptor_Maps.Map;
 
    procedure Register
@@ -81,59 +62,10 @@ package body Codesearch.IO is
       Epoll.Control (EP, Desc, Epoll.Delete, null);
    end Unregister;
 
-   procedure Set_Timeout
-      (After    : Duration;
-       Callback : Timer_Callback)
-   is
-      use Ada.Real_Time;
-   begin
-      Timer_Sets.Insert (Timers, Timer'(
-         Callback   => Callback,
-         Expires_At => Clock + To_Time_Span (After)));
-   end Set_Timeout;
-
-   procedure Run_Timers is
-      use Ada.Real_Time;
-      use Timer_Sets;
-      Now : constant Time := Clock;
-      T : Timer;
-   begin
-      loop
-         exit when Is_Empty (Timers);
-         T := First_Element (Timers);
-         exit when T.Expires_At > Now;
-         Delete_First (Timers);
-         T.Callback.all;
-      end loop;
-   end Run_Timers;
-
-   function Next_Event
-      return Ada.Real_Time.Time
-   is
-      use Ada.Real_Time;
-      use Timer_Sets;
-   begin
-      if Is_Empty (Timers) then
-         return Time_Last;
-      else
-         return First_Element (Timers).Expires_At;
-      end if;
-   end Next_Event;
-
    procedure Poll_Events is
-      use Ada.Real_Time;
       use Descriptor_Maps;
-      Next    : Time;
-      Timeout : Duration;
    begin
-      Next := Next_Event;
-      if Next = Time_Last then
-         Timeout := 1.0;
-      else
-         Timeout := To_Duration (Next - Clock);
-      end if;
-
-      for Event of Epoll.Wait (EP, Timeout => Integer (Timeout), Max_Events => 64) loop
+      for Event of Epoll.Wait (EP, Timeout => 1, Max_Events => 8) loop
          declare
             Desc : constant Descriptor := Descriptor
                (GNAT.Sockets.To_Ada (Integer (Event.Data)));
@@ -158,7 +90,6 @@ package body Codesearch.IO is
    procedure Run is
    begin
       loop
-         Run_Timers;
          Poll_Events;
       end loop;
    end Run;

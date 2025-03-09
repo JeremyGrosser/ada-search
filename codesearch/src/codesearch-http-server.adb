@@ -1,4 +1,3 @@
-pragma Ada_2022;
 --
 --  Copyright (C) 2025 Jeremy Grosser <jeremy@synack.me>
 --
@@ -10,7 +9,6 @@ with Ada.Containers.Ordered_Maps;
 with Codesearch.Service;
 with Codesearch.Database;
 with Codesearch.IO;
-with Ada.Text_IO;
 
 package body Codesearch.HTTP.Server is
 
@@ -90,15 +88,15 @@ package body Codesearch.HTTP.Server is
       return Boolean
    is (To_C (Left) < To_C (Right));
 
-   package Request_Maps is new Ada.Containers.Ordered_Maps
-      (Key_Type     => Socket_Type,
-       Element_Type => Request);
-   Requests : Request_Maps.Map;
+   type Session_Type is record
+      Req  : Request := (others => <>);
+      Resp : Response := (others => <>);
+   end record;
 
-   package Response_Maps is new Ada.Containers.Ordered_Maps
-      (Key_Type => Socket_Type,
-       Element_Type => Response);
-   Responses : Response_Maps.Map;
+   package Session_Maps is new Ada.Containers.Ordered_Maps
+      (Key_Type     => Socket_Type,
+       Element_Type => Session_Type);
+   Sessions : Session_Maps.Map;
 
    procedure On_Readable
       (Sock : Socket_Type);
@@ -108,14 +106,13 @@ package body Codesearch.HTTP.Server is
       (Sock : Socket_Type);
 
    procedure On_Request
-      (Req  : Request;
-       Sock : Socket_Type)
+      (Session : in out Session_Type;
+       Sock    : Socket_Type)
    is
-      Resp : constant Response_Maps.Reference_Type := Response_Maps.Reference (Responses, Sock);
    begin
-      Resp.Socket := Sock;
-      Codesearch.Service.Handle_Request (Req, Resp, DB);
-      if Response_Buffers.Length (Resp.Buffer) > 0 then
+      Session.Resp.Socket := Sock;
+      Codesearch.Service.Handle_Request (Session.Req, Session.Resp, DB);
+      if Response_Buffers.Length (Session.Resp.Buffer) > 0 then
          Codesearch.IO.Unregister (Sock);
          Codesearch.IO.Register (Sock,
             Readable => On_Readable'Access,
@@ -127,24 +124,22 @@ package body Codesearch.HTTP.Server is
    procedure On_Readable
       (Sock : Socket_Type)
    is
-      use Request_Maps;
-      Req : constant Reference_Type := Reference (Requests, Sock);
-      Item : Stream_Element_Array (1 .. Stream_Element_Offset (Req.Item'Last))
-         with Address => Req.Item'Address;
+      Session : constant Session_Maps.Reference_Type := Session_Maps.Reference (Sessions, Sock);
+      Item : Stream_Element_Array (1 .. Stream_Element_Offset (Session.Req.Item'Last))
+         with Address => Session.Req.Item'Address;
       Last : Stream_Element_Offset := 0;
    begin
-      Ada.Text_IO.Put_Line ("recv " & Sock'Image);
       Receive_Socket (Sock, Item (Last + 1 .. Item'Last), Last);
-      Req.Last := Natural (Last);
-      if Req.Last = 0 then
+      Session.Req.Last := Natural (Last);
+      if Session.Req.Last = 0 then
          On_Error (Sock);
          return;
       end if;
 
-      Parse_Request (Req);
+      Parse_Request (Session.Req);
 
-      if Req.End_Headers > 0 then
-         On_Request (Req, Sock);
+      if Session.Req.End_Headers > 0 then
+         On_Request (Session, Sock);
       end if;
    exception
       when Parse_Error =>
@@ -154,16 +149,15 @@ package body Codesearch.HTTP.Server is
    procedure On_Writable
       (Sock : Socket_Type)
    is
-      Resp : constant Response_Maps.Reference_Type := Response_Maps.Reference (Responses, Sock);
-      Str  : constant String := Response_Buffers.To_String (Resp.Buffer);
+      Session : constant Session_Maps.Reference_Type := Session_Maps.Reference (Sessions, Sock);
+      Str  : constant String := Response_Buffers.To_String (Session.Resp.Buffer);
       Item : Stream_Element_Array (1 .. Stream_Element_Offset (Str'Length))
          with Address => Str'Address;
       Last : Stream_Element_Offset := 0;
    begin
       Send_Socket (Sock, Item, Last);
-      Ada.Text_IO.Put_Line ("send " & Sock'Image & Last'Image);
-      Response_Buffers.Delete (Resp.Buffer, 1, Natural (Last));
-      if Response_Buffers.Length (Resp.Buffer) = 0 then
+      Response_Buffers.Delete (Session.Resp.Buffer, 1, Natural (Last));
+      if Response_Buffers.Length (Session.Resp.Buffer) = 0 then
          Close_Socket (Sock);
       end if;
    exception
@@ -176,7 +170,6 @@ package body Codesearch.HTTP.Server is
    is
    begin
       Close_Socket (Sock);
-      Ada.Text_IO.Put_Line ("error " & Sock'Image);
    end On_Error;
 
    procedure On_Connect
@@ -187,31 +180,25 @@ package body Codesearch.HTTP.Server is
    begin
       Accept_Socket (Listen_Sock, Sock, Addr);
 
-      if not Request_Maps.Contains (Requests, Sock) then
+      if not Session_Maps.Contains (Sessions, Sock) then
          declare
-            New_Request : Request;
+            New_Session : constant Session_Type := (others => <>);
          begin
-            Request_Maps.Insert (Requests, Sock, New_Request);
+            Session_Maps.Insert (Sessions, Sock, New_Session);
          end;
-      else
-         Reset (Request_Maps.Reference (Requests, Sock));
       end if;
 
-      if not Response_Maps.Contains (Responses, Sock) then
-         declare
-            New_Response : Response;
-         begin
-            Response_Maps.Insert (Responses, Sock, New_Response);
-         end;
-      else
-         Reset (Response_Maps.Reference (Responses, Sock));
-      end if;
+      declare
+         Session : constant Session_Maps.Reference_Type := Session_Maps.Reference (Sessions, Sock);
+      begin
+         Reset (Session.Req);
+         Reset (Session.Resp);
+      end;
 
       Codesearch.IO.Register (Sock,
          Readable => On_Readable'Access,
          Writable => null,
          Error    => On_Error'Access);
-      Ada.Text_IO.Put_Line ("Connect " & Image (Addr));
    end On_Connect;
 
    procedure Bind is
@@ -229,7 +216,6 @@ package body Codesearch.HTTP.Server is
          Readable => On_Connect'Access,
          Writable => null,
          Error    => null);
-      Ada.Text_IO.Put_Line ("Bind " & Image (Addr));
    end Bind;
 
    procedure Run is

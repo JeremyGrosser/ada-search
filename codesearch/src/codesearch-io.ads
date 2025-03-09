@@ -7,8 +7,6 @@ package Codesearch.IO is
    type Event_Callback is access procedure
       (Desc : Descriptor);
 
-   type Timer_Callback is access procedure;
-
    procedure Register
       (Desc     : Descriptor;
        Readable : Event_Callback;
@@ -17,10 +15,6 @@ package Codesearch.IO is
 
    procedure Unregister
       (Desc : Descriptor);
-
-   procedure Set_Timeout
-      (After    : Duration;
-       Callback : Timer_Callback);
 
    procedure Run;
 

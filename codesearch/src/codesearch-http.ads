@@ -6,7 +6,7 @@
 with Codesearch.Strings;
 private with Ada.Strings.Equal_Case_Insensitive;
 private with Ada.Strings.Hash_Case_Insensitive;
-private with Ada.Strings.Bounded;
+private with Ada.Strings.Unbounded;
 private with Ada.Containers.Indefinite_Hashed_Maps;
 private with GNAT.Sockets;
 
@@ -55,7 +55,6 @@ is
 private
 
    Max_Request_Length   : constant := 4096;
-   Max_Response_Length  : constant := 128 * 1024;
 
    type Span is record
       First, Last : Natural := 0;
@@ -71,19 +70,18 @@ private
       Item        : String (1 .. Max_Request_Length);
       Last        : Natural := 0;
       End_Headers : Natural := 0;
-      Method      : Span;
-      Target      : Span;
-      Protocol    : Span;
+      Method      : Span := (0, 0);
+      Target      : Span := (0, 0);
+      Protocol    : Span := (0, 0);
       Headers     : Request_Header_Maps.Map := Request_Header_Maps.Empty_Map;
    end record;
 
-   package Response_Buffers is new Ada.Strings.Bounded.Generic_Bounded_Length
-      (Max_Response_Length);
+   package Response_Buffers renames Ada.Strings.Unbounded;
 
    type Response is record
-      Socket   : GNAT.Sockets.Socket_Type;
+      Socket   : GNAT.Sockets.Socket_Type := GNAT.Sockets.To_Ada (0);
       Started  : Boolean := False; --  Set True after status and headers are sent
-      Buffer   : Response_Buffers.Bounded_String := Response_Buffers.Null_Bounded_String;
+      Buffer   : Response_Buffers.Unbounded_String := Response_Buffers.Null_Unbounded_String;
    end record;
 
    function Get_String
