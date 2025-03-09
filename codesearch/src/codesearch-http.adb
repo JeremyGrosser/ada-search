@@ -79,10 +79,16 @@ package body Codesearch.HTTP is
    is
       use Response_Buffers;
    begin
-      Append (This.Buffer, Key);
-      Append (This.Buffer, ": ");
-      Append (This.Buffer, Value);
-      Append (This.Buffer, CRLF);
+      if This.Started then
+         Insert (This.Buffer,
+            New_Item => CRLF & Key & ": " & Value,
+            Before => End_Headers (This));
+      else
+         Append (This.Buffer, Key);
+         Append (This.Buffer, ": ");
+         Append (This.Buffer, Value);
+         Append (This.Buffer, CRLF);
+      end if;
    end Set_Header;
 
    procedure Set_Status
@@ -164,5 +170,15 @@ package body Codesearch.HTTP is
    procedure Parse_Request
       (Req : in out Request)
    is separate;
+
+   function End_Headers
+      (Resp : Response)
+      return Natural
+   is (Response_Buffers.Index (Resp.Buffer, CRLF & CRLF, 1));
+
+   function Payload_Length
+      (Resp : Response)
+      return Natural
+   is (Response_Buffers.Length (Resp.Buffer) - End_Headers (Resp) - 3);
 
 end Codesearch.HTTP;

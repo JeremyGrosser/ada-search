@@ -100,4 +100,12 @@ private
    procedure Parse_Request
       (Req : in out Request);
 
+   function End_Headers
+      (Resp : Response)
+      return Natural;
+
+   function Payload_Length
+      (Resp : Response)
+      return Natural;
+
 end Codesearch.HTTP;

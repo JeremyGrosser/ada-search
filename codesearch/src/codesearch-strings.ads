@@ -107,4 +107,8 @@ is
    function LF
       return Unicode;
 
+   function To_String
+      (N : Natural)
+      return String;
+
 end Codesearch.Strings;

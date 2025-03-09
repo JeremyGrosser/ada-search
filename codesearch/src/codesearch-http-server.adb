@@ -9,6 +9,7 @@ with Ada.Containers.Ordered_Maps;
 with Codesearch.Service;
 with Codesearch.Database;
 with Codesearch.IO;
+with Ada.Text_IO;
 
 package body Codesearch.HTTP.Server is
 
@@ -41,7 +42,14 @@ package body Codesearch.HTTP.Server is
    is
    begin
       Session.Resp.Socket := Sock;
+
       Codesearch.Service.Handle_Request (Session.Req, Session.Resp, DB);
+
+      Set_Header (Session.Resp,
+         Key   => "Content-Length",
+         Value => Codesearch.Strings.To_String
+            (Payload_Length (Session.Resp)));
+
       if Response_Buffers.Length (Session.Resp.Buffer) > 0 then
          Codesearch.IO.Set_Triggers (Sock, Readable => True, Writable => True, Error => True);
       end if;
@@ -58,7 +66,7 @@ package body Codesearch.HTTP.Server is
       Receive_Socket (Sock, Item (Last + 1 .. Item'Last), Last);
       Session.Req.Last := Natural (Last);
       if Session.Req.Last = 0 then
-         On_Error (Sock);
+         Close_Socket (Sock);
          return;
       end if;
 
@@ -69,6 +77,7 @@ package body Codesearch.HTTP.Server is
       end if;
    exception
       when Parse_Error =>
+         Ada.Text_IO.Put_Line ("Parse_Error");
          On_Error (Sock);
    end On_Readable;
 
@@ -84,10 +93,17 @@ package body Codesearch.HTTP.Server is
       Send_Socket (Sock, Item, Last);
       Response_Buffers.Delete (Session.Resp.Buffer, 1, Natural (Last));
       if Response_Buffers.Length (Session.Resp.Buffer) = 0 then
-         Close_Socket (Sock);
+         Reset (Session.Req);
+         Reset (Session.Resp);
+         Codesearch.IO.Set_Triggers
+            (Desc     => Sock,
+             Readable => True,
+             Writable => False,
+             Error    => True);
       end if;
    exception
       when Socket_Error =>
+         Ada.Text_IO.Put_Line ("Socket_Error in On_Writable");
          On_Error (Sock);
    end On_Writable;
 
@@ -95,6 +111,7 @@ package body Codesearch.HTTP.Server is
       (Sock : Socket_Type)
    is
    begin
+      Ada.Text_IO.Put_Line ("Error");
       Close_Socket (Sock);
    end On_Error;
 
@@ -112,14 +129,14 @@ package body Codesearch.HTTP.Server is
          begin
             Session_Maps.Insert (Sessions, Sock, New_Session);
          end;
+      else
+         declare
+            Session : constant Session_Maps.Reference_Type := Session_Maps.Reference (Sessions, Sock);
+         begin
+            Reset (Session.Req);
+            Reset (Session.Resp);
+         end;
       end if;
-
-      declare
-         Session : constant Session_Maps.Reference_Type := Session_Maps.Reference (Sessions, Sock);
-      begin
-         Reset (Session.Req);
-         Reset (Session.Resp);
-      end;
 
       Codesearch.IO.Register (Sock,
          Readable => On_Readable'Access,

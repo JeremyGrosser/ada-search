@@ -139,4 +139,21 @@ package body Codesearch.Strings is
       return Unicode
    is (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Decode (String'("" & ASCII.LF)));
 
+   function To_String
+      (N : Natural)
+      return String
+   is
+      Num : constant array (0 .. 9) of Character := "0123456789";
+      S : String (1 .. 10);
+      I : Natural := S'Last;
+      J : Natural := N;
+   begin
+      loop
+         exit when J = 0 or else I = 0;
+         S (I) := Num (J mod 10);
+         J := J / 10;
+         I := I - 1;
+      end loop;
+      return S (I + 1 .. S'Last);
+   end To_String;
 end Codesearch.Strings;

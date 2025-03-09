@@ -89,15 +89,23 @@ package body Codesearch.IO is
          begin
             if Contains (Descriptors, Desc) then
                Callbacks := Element (Descriptors, Desc);
-               if Event.Flags.Readable and then Callbacks.Readable /= null then
+               if Event.Flags.Readable and then
+                  Callbacks.Readable /= null
+               then
                   Callbacks.Readable.all (Desc);
                end if;
-               if Event.Flags.Writable and then Callbacks.Writable /= null then
+               if Event.Flags.Writable and then
+                  Callbacks.Writable /= null
+               then
                   Callbacks.Writable.all (Desc);
                end if;
-               if Event.Flags.Error and then Callbacks.Error /= null then
+               if (Event.Flags.Error or else Event.Flags.Hang_Up) and then
+                  Callbacks.Error /= null
+               then
                   Callbacks.Error.all (Desc);
                end if;
+            else
+               raise Program_Error with "epoll_wait returned event for unknown descriptor";
             end if;
          end;
       end loop;
