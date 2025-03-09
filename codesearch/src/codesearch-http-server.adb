@@ -39,7 +39,9 @@ package body Codesearch.HTTP.Server is
       (Req : in out Request)
    is
       CRLF : constant String := ASCII.CR & ASCII.LF;
+      I, Next : Natural;
    begin
+      --  Find the end of headers (double CRLF)
       Req.End_Headers := Req.Item'Last;
       Req.End_Headers := Index (Req, Req.Item'First, CRLF & CRLF);
       if Req.End_Headers = 0 then
@@ -50,38 +52,91 @@ package body Codesearch.HTTP.Server is
          --  Leave one CRLF in the buffer to make header parsing easier
       end if;
 
+      --  Parse request line (METHOD TARGET PROTOCOL)
       Req.Method.First := Req.Item'First;
-      Req.Method.Last := Index (Req, Req.Method.First, " ") - 1;
+      I := Index (Req, Req.Method.First, " ");
+      if I = 0 then
+         raise Parse_Error with "Invalid request line: missing space after method";
+      end if;
+      Req.Method.Last := I - 1;
 
-      Req.Target.First := Req.Method.Last + 2;
-      Req.Target.Last := Index (Req, Req.Target.First, " ") - 1;
+      --  Parse target
+      if I + 1 > Req.End_Headers then
+         raise Parse_Error with "Invalid request line: unexpected end after method";
+      end if;
+      Req.Target.First := I + 1;
+      I := Index (Req, Req.Target.First, " ");
+      if I = 0 then
+         raise Parse_Error with "Invalid request line: missing space after target";
+      end if;
+      Req.Target.Last := I - 1;
 
-      Req.Protocol.First := Req.Target.Last + 2;
-      Req.Protocol.Last := Index (Req, Req.Protocol.First, CRLF) - 1;
+      --  Parse protocol
+      if I + 1 > Req.End_Headers then
+         raise Parse_Error with "Invalid request line: unexpected end after target";
+      end if;
+      Req.Protocol.First := I + 1;
+      I := Index (Req, Req.Protocol.First, CRLF);
+      if I = 0 then
+         raise Parse_Error with "Invalid request line: missing CRLF after protocol";
+      end if;
+      Req.Protocol.Last := I - 1;
 
-      declare
-         Name, Value : Span;
-         I : Natural := Req.Protocol.Last + 3;
-      begin
-         loop
+      --  Parse headers
+      I := Req.Protocol.Last + CRLF'Length + 1;
+      while I <= Req.End_Headers - CRLF'Length loop
+         --  Check if we've reached the end of headers (empty line)
+         if I + CRLF'Length - 1 <= Req.End_Headers and then
+            Req.Item (I .. I + CRLF'Length - 1) = CRLF
+         then
+            exit;
+         end if;
+
+         --  Parse header name
+         declare
+            Name, Value : Span;
+         begin
             Name.First := I;
-            I := Index (Req, Name.First, ":");
-            exit when I = 0;
-            Name.Last := I - 1;
+            Next := Index (Req, Name.First, ":");
+            if Next = 0 or else Next >= Req.End_Headers then
+               raise Parse_Error with "Invalid header: missing colon";
+            end if;
+            Name.Last := Next - 1;
 
-            Value.First := I + 1;
-            if Req.Item (Value.First) = ' ' then --  consume optional whitespace
+            --  Parse header value (skipping optional whitespace)
+            Value.First := Next + 1;
+            if Value.First <= Req.End_Headers and then
+               Req.Item (Value.First) = ' '
+            then
                Value.First := Value.First + 1;
             end if;
-            I := Index (Req, Value.First, CRLF);
-            if I = 0 then
-               raise Parse_Error with "Missing CRLF after header value";
+
+            Next := Index (Req, Value.First, CRLF);
+            if Next = 0 or else Next > Req.End_Headers then
+               raise Parse_Error with "Invalid header: missing CRLF after value";
             end if;
-            Value.Last := I - 1;
-            I := I + 2;
-            Request_Header_Maps.Include (Req.Headers, Get_String (Req, Name), Value);
-         end loop;
-      end;
+            Value.Last := Next - 1;
+
+            --  Only add the header if both name and value are valid
+            if Name.First <= Name.Last and then
+               Value.First <= Value.Last and then
+               Name.Last < Req.Item'Last and then
+               Value.Last < Req.Item'Last
+            then
+               Request_Header_Maps.Include (
+                  Req.Headers,
+                  Get_String (Req, Name),
+                  Value
+               );
+            end if;
+
+            --  Move to the next header
+            I := Next + CRLF'Length;
+         end;
+      end loop;
+   exception
+      when Constraint_Error =>
+         raise Parse_Error with "Index out of bounds during request parsing";
    end Parse_Request;
 
    function "<" (Left, Right : Socket_Type)
