@@ -161,4 +161,8 @@ package body Codesearch.HTTP is
       Response_Buffers.Delete (Resp.Buffer, 1, Response_Buffers.Length (Resp.Buffer));
    end Reset;
 
+   procedure Parse_Request
+      (Req : in out Request)
+   is separate;
+
 end Codesearch.HTTP;

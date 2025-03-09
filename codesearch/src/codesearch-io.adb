@@ -55,6 +55,22 @@ package body Codesearch.IO is
       end if;
    end Register;
 
+   procedure Set_Triggers
+      (Desc : Descriptor;
+       Readable, Writable, Error : Boolean)
+   is
+      Event : aliased Epoll.Epoll_Event :=
+         (Flags =>
+            (Readable => Readable,
+             Writable => Writable,
+             Error    => Error,
+             Hang_Up  => Error,
+             others   => False),
+          Data => Interfaces.Unsigned_64 (GNAT.Sockets.To_C (Desc)));
+   begin
+      Epoll.Control (EP, Desc, Epoll.Modify, Event'Access);
+   end Set_Triggers;
+
    procedure Unregister
       (Desc : Descriptor)
    is

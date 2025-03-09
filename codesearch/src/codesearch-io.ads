@@ -13,6 +13,10 @@ package Codesearch.IO is
        Writable : Event_Callback;
        Error    : Event_Callback);
 
+   procedure Set_Triggers
+      (Desc : Descriptor;
+       Readable, Writable, Error : Boolean);
+
    procedure Unregister
       (Desc : Descriptor);
 

@@ -95,4 +95,9 @@ private
    procedure Reset
       (Resp : in out Response);
 
+   Parse_Error : exception;
+
+   procedure Parse_Request
+      (Req : in out Request);
+
 end Codesearch.HTTP;
