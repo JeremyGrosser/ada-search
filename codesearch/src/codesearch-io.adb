@@ -1,6 +1,7 @@
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Calendar;
+with Ada.Text_IO;
 with Interfaces;
 with Epoll;
 
@@ -109,7 +110,7 @@ package body Codesearch.IO is
       T.Expires_At := Clock + After;
       T.Callback := Callback;
       T.Desc := Desc;
-      Timer_Sets.Insert (Timers, T);
+      Timer_Sets.Include (Timers, T);
    end Set_Timeout;
 
    procedure Poll_Timers is
@@ -167,5 +168,17 @@ package body Codesearch.IO is
          Poll_Events;
       end loop;
    end Run;
+
+   procedure Print_Status is
+      use Ada.Text_IO;
+   begin
+      Put ("Descriptors: ");
+      Put (Descriptor_Maps.Length (Descriptors)'Image);
+      New_Line;
+
+      Put ("Timers: ");
+      Put (Timer_Sets.Length (Timers)'Image);
+      New_Line;
+   end Print_Status;
 
 end Codesearch.IO;

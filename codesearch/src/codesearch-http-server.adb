@@ -7,6 +7,7 @@ with Ada.Streams; use Ada.Streams;
 with GNAT.Sockets; use GNAT.Sockets;
 with Ada.Containers.Ordered_Maps;
 with Ada.Calendar;
+with Ada.Exceptions;
 with Codesearch.Service;
 with Codesearch.Database;
 with Codesearch.IO;
@@ -16,7 +17,7 @@ package body Codesearch.HTTP.Server is
 
    Request_Timeout   : constant Duration := 10.0;
    Response_Timeout  : constant Duration := 10.0;
-   Idle_Timeout      : constant Duration := 60.0;
+   Idle_Timeout      : constant Duration := 10.0;
 
    DB : Codesearch.Database.Session;
 
@@ -86,8 +87,8 @@ package body Codesearch.HTTP.Server is
             (Payload_Length (Session.Resp)));
 
       if Response_Buffers.Length (Session.Resp.Buffer) > 0 then
-         Codesearch.IO.Set_Triggers (Sock, Readable => True, Writable => True, Error => True);
          Set_Timeout (Session, Sock, Response_Timeout);
+         Codesearch.IO.Set_Triggers (Sock, Readable => True, Writable => True, Error => True);
       end if;
    end On_Request;
 
@@ -113,9 +114,11 @@ package body Codesearch.HTTP.Server is
          On_Request (Session, Sock);
       end if;
    exception
+      when Socket_Error =>
+         null;
       when Parse_Error =>
          Ada.Text_IO.Put_Line ("Parse_Error");
-         On_Error (Sock);
+         --  On_Error (Sock);
    end On_Readable;
 
    procedure On_Writable
@@ -127,6 +130,9 @@ package body Codesearch.HTTP.Server is
          with Address => Str'Address;
       Last : Stream_Element_Offset := 0;
    begin
+      if Item'Length = 0 then
+         return;
+      end if;
       Send_Socket (Sock, Item, Last);
       Response_Buffers.Delete (Session.Resp.Buffer, 1, Natural (Last));
       if Response_Buffers.Length (Session.Resp.Buffer) = 0 then
@@ -140,9 +146,10 @@ package body Codesearch.HTTP.Server is
          Set_Timeout (Session, Sock, Idle_Timeout);
       end if;
    exception
-      when Socket_Error =>
+      when E : Socket_Error =>
          Ada.Text_IO.Put_Line ("Socket_Error in On_Writable");
-         On_Error (Sock);
+         Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
+         --  On_Error (Sock);
    end On_Writable;
 
    procedure On_Error
@@ -152,7 +159,7 @@ package body Codesearch.HTTP.Server is
    begin
       Ada.Text_IO.Put_Line ("Error");
       Session.Timers_Enabled := False;
-      Close_Socket (Sock);
+      --  Close_Socket (Sock);
    end On_Error;
 
    procedure On_Connect
@@ -203,9 +210,22 @@ package body Codesearch.HTTP.Server is
          Error    => null);
    end Bind;
 
+   procedure Print_Status
+      (Desc : Socket_Type)
+   is
+      use Ada.Text_IO;
+   begin
+      Put ("Sessions: ");
+      Put (Session_Maps.Length (Sessions)'Image);
+      New_Line;
+      Codesearch.IO.Print_Status;
+      Codesearch.IO.Set_Timeout (1.0, Print_Status'Access, To_Ada (0));
+   end Print_Status;
+
    procedure Run is
    begin
       DB := Codesearch.Database.Open (Read_Only => True);
+      Codesearch.IO.Set_Timeout (1.0, Print_Status'Access, To_Ada (0));
       Codesearch.IO.Run;
    end Run;
 

@@ -26,5 +26,6 @@ package Codesearch.IO is
        Desc     : Descriptor);
 
    procedure Run;
+   procedure Print_Status;
 
 end Codesearch.IO;
