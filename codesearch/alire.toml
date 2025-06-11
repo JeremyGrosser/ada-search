@@ -28,6 +28,3 @@ sqlite3.THREADSAFE = 1
 
 [[pins]]
 sqlite3 = { url='https://github.com/JeremyGrosser/sqlite3_binding.git' }
-
-[[depends-on]]
-epoll = "~0.1.1"

@@ -5,11 +5,28 @@
 --
 with Codesearch.HTTP.Server;
 with Codesearch.File;
+with Ada.Text_IO;
+with Ada.Exceptions;
 
 procedure Main is
    package Server renames Codesearch.HTTP.Server;
+
+   task type Worker;
+
+   task body Worker is
+      Context : Server.Server_Context;
+   begin
+      Codesearch.File.Set_Working_Directory;
+      Server.Bind (Context);
+      Server.Run (Context);
+   exception
+      when E : others =>
+         Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
+   end Worker;
+
+   Workers : array (1 .. 1) of Worker;
 begin
-   Codesearch.File.Set_Working_Directory;
-   Server.Bind;
-   Server.Run;
+   loop
+      delay 10.0;
+   end loop;
 end Main;

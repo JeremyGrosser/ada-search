@@ -8,7 +8,7 @@ private with Ada.Strings.Equal_Case_Insensitive;
 private with Ada.Strings.Hash_Case_Insensitive;
 private with Ada.Strings.Unbounded;
 private with Ada.Containers.Indefinite_Hashed_Maps;
-private with GNAT.Sockets;
+private with Codesearch.Sockets;
 
 package Codesearch.HTTP
    with Elaborate_Body
@@ -79,7 +79,7 @@ private
    package Response_Buffers renames Ada.Strings.Unbounded;
 
    type Response is record
-      Socket   : GNAT.Sockets.Socket_Type := GNAT.Sockets.To_Ada (0);
+      Socket   : Codesearch.Sockets.Socket_Type := 0;
       Started  : Boolean := False; --  Set True after status and headers are sent
       Buffer   : Response_Buffers.Unbounded_String := Response_Buffers.Null_Unbounded_String;
    end record;
