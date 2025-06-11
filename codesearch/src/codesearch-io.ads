@@ -4,6 +4,7 @@ private with Ada.Calendar;
 private with Epoll;
 
 with Codesearch.Sockets;
+with System;
 
 package Codesearch.IO is
 
@@ -13,17 +14,19 @@ package Codesearch.IO is
 
    type Event_Callback is access procedure
       (This : in out IO_Context;
-       Desc : Descriptor);
+       Desc : Descriptor;
+       User_Context : System.Address);
 
    procedure Initialize
       (This : out IO_Context);
 
    procedure Register
-      (This     : in out IO_Context;
-       Desc     : Descriptor;
-       Readable : Event_Callback;
-       Writable : Event_Callback;
-       Error    : Event_Callback);
+      (This          : in out IO_Context;
+       Desc          : Descriptor;
+       Readable      : Event_Callback;
+       Writable      : Event_Callback;
+       Error         : Event_Callback;
+       User_Context  : System.Address);
 
    procedure Set_Triggers
       (This    : in out IO_Context;
@@ -35,10 +38,11 @@ package Codesearch.IO is
        Desc : Descriptor);
 
    procedure Set_Timeout
-      (This     : in out IO_Context;
-       After    : Duration;
-       Callback : Event_Callback;
-       Desc     : Descriptor);
+      (This          : in out IO_Context;
+       After         : Duration;
+       Callback      : Event_Callback;
+       Desc          : Descriptor;
+       User_Context  : System.Address);
 
    procedure Run
       (This : in out IO_Context);
@@ -47,6 +51,7 @@ private
 
    type Event_Callbacks is record
       Readable, Writable, Error : Event_Callback;
+      User_Context : System.Address;
    end record;
 
    use type Codesearch.Sockets.Socket_Type;
@@ -55,9 +60,10 @@ private
        Element_Type  => Event_Callbacks);
 
    type Timer is record
-      Expires_At  : Ada.Calendar.Time;
-      Callback    : Event_Callback;
-      Desc        : Descriptor;
+      Expires_At     : Ada.Calendar.Time;
+      Callback       : Event_Callback;
+      Desc           : Descriptor;
+      User_Context   : System.Address;
    end record;
 
    function "<" (Left, Right : Timer)

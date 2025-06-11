@@ -119,6 +119,7 @@ package body Codesearch.Database is
           NOMUTEX  => True,
           WAL      => True,
           others   => False));
+
       if not Sqlite.Is_Open (This.DB) then
          raise Program_Error with "Unable to open index.db";
       end if;

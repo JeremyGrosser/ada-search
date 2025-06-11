@@ -7,8 +7,12 @@ with Codesearch.HTTP.Server;
 
 procedure Main is
    package Server renames Codesearch.HTTP.Server;
-   Workers : array (1 .. 8) of Server.Worker;
+   Workers : array (1 .. 32) of Server.Worker;
 begin
+   for W of Workers loop
+      W.Start;
+      W.Ready;
+   end loop;
    loop
       delay 10.0;
    end loop;

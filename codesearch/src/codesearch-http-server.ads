@@ -4,5 +4,8 @@
 --  SPDX-License-Identifier: AGPL-3.0-or-later
 --
 package Codesearch.HTTP.Server is
-   task type Worker;
+   task type Worker is
+      entry Start;
+      entry Ready;
+   end Worker;
 end Codesearch.HTTP.Server;
