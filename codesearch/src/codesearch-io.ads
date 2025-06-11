@@ -12,36 +12,36 @@ package Codesearch.IO is
    subtype Descriptor is Codesearch.Sockets.Socket_Type;
 
    type Event_Callback is access procedure
-      (Context : in out IO_Context;
-       Desc    : Descriptor);
+      (This : in out IO_Context;
+       Desc : Descriptor);
 
    procedure Initialize
-      (Context : out IO_Context);
+      (This : out IO_Context);
 
    procedure Register
-      (Context  : in out IO_Context;
+      (This     : in out IO_Context;
        Desc     : Descriptor;
        Readable : Event_Callback;
        Writable : Event_Callback;
        Error    : Event_Callback);
 
    procedure Set_Triggers
-      (Context : in out IO_Context;
+      (This    : in out IO_Context;
        Desc    : Descriptor;
        Readable, Writable, Error : Boolean);
 
    procedure Unregister
-      (Context : in out IO_Context;
-       Desc    : Descriptor);
+      (This : in out IO_Context;
+       Desc : Descriptor);
 
    procedure Set_Timeout
-      (Context  : in out IO_Context;
+      (This     : in out IO_Context;
        After    : Duration;
        Callback : Event_Callback;
        Desc     : Descriptor);
 
    procedure Run
-      (Context : in out IO_Context);
+      (This : in out IO_Context);
 
 private
 

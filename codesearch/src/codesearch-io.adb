@@ -3,14 +3,14 @@ with Interfaces;
 package body Codesearch.IO is
 
    procedure Initialize
-      (Context : out IO_Context)
+      (This : out IO_Context)
    is
    begin
-      Context.EP := Epoll.Create;
+      This.EP := Epoll.Create;
    end Initialize;
 
    procedure Register
-      (Context  : in out IO_Context;
+      (This     : in out IO_Context;
        Desc     : Descriptor;
        Readable : Event_Callback;
        Writable : Event_Callback;
@@ -26,15 +26,15 @@ package body Codesearch.IO is
           Hang_Up  => Error /= null,
           others   => False);
       Event.Data := Interfaces.Unsigned_64 (Desc);
-      Epoll.Control (Context.EP, Desc, Epoll.Add, Event'Access);
+      Epoll.Control (This.EP, Desc, Epoll.Add, Event'Access);
 
-      if Contains (Context.Descriptors, Desc) then
-         Reference (Context.Descriptors, Desc) := Event_Callbacks'
+      if Contains (This.Descriptors, Desc) then
+         Reference (This.Descriptors, Desc) := Event_Callbacks'
             (Readable => Readable,
              Writable => Writable,
              Error    => Error);
       else
-         Insert (Context.Descriptors, Desc,
+         Insert (This.Descriptors, Desc,
             (Readable => Readable,
              Writable => Writable,
              Error    => Error));
@@ -42,7 +42,7 @@ package body Codesearch.IO is
    end Register;
 
    procedure Set_Triggers
-      (Context : in out IO_Context;
+      (This    : in out IO_Context;
        Desc    : Descriptor;
        Readable, Writable, Error : Boolean)
    is
@@ -55,15 +55,15 @@ package body Codesearch.IO is
              others   => False),
           Data => Interfaces.Unsigned_64 (Desc));
    begin
-      Epoll.Control (Context.EP, Desc, Epoll.Modify, Event'Access);
+      Epoll.Control (This.EP, Desc, Epoll.Modify, Event'Access);
    end Set_Triggers;
 
    procedure Unregister
-      (Context : in out IO_Context;
-       Desc    : Descriptor)
+      (This : in out IO_Context;
+       Desc : Descriptor)
    is
    begin
-      Epoll.Control (Context.EP, Desc, Epoll.Delete, null);
+      Epoll.Control (This.EP, Desc, Epoll.Delete, null);
    end Unregister;
 
    function "<" (Left, Right : Timer)
@@ -75,7 +75,7 @@ package body Codesearch.IO is
    end "<";
 
    procedure Set_Timeout
-      (Context  : in out IO_Context;
+      (This     : in out IO_Context;
        After    : Duration;
        Callback : Event_Callback;
        Desc     : Descriptor)
@@ -86,11 +86,11 @@ package body Codesearch.IO is
       T.Expires_At := Clock + After;
       T.Callback := Callback;
       T.Desc := Desc;
-      Timer_Sets.Include (Context.Timers, T);
+      Timer_Sets.Include (This.Timers, T);
    end Set_Timeout;
 
    procedure Poll_Timers
-      (Context : in out IO_Context)
+      (This : in out IO_Context)
    is
       use Timer_Sets;
       use Ada.Calendar;
@@ -98,41 +98,41 @@ package body Codesearch.IO is
       T : Timer;
    begin
       loop
-         exit when Is_Empty (Context.Timers);
-         T := First_Element (Context.Timers);
+         exit when Is_Empty (This.Timers);
+         T := First_Element (This.Timers);
          exit when T.Expires_At > Now;
-         Delete_First (Context.Timers);
-         T.Callback.all (Context, T.Desc);
+         Delete_First (This.Timers);
+         T.Callback.all (This, T.Desc);
       end loop;
    end Poll_Timers;
 
    procedure Poll_Events
-      (Context : in out IO_Context)
+      (This : in out IO_Context)
    is
       use Descriptor_Maps;
    begin
-      for Event of Epoll.Wait (Context.EP, Timeout => 1, Max_Events => 8) loop
+      for Event of Epoll.Wait (This.EP, Timeout => 1, Max_Events => 8) loop
          declare
             Desc : constant Descriptor := Descriptor
                (Integer (Event.Data));
             Callbacks : Event_Callbacks;
          begin
-            if Contains (Context.Descriptors, Desc) then
-               Callbacks := Element (Context.Descriptors, Desc);
+            if Contains (This.Descriptors, Desc) then
+               Callbacks := Element (This.Descriptors, Desc);
                if Event.Flags.Readable and then
                   Callbacks.Readable /= null
                then
-                  Callbacks.Readable.all (Context, Desc);
+                  Callbacks.Readable.all (This, Desc);
                end if;
                if Event.Flags.Writable and then
                   Callbacks.Writable /= null
                then
-                  Callbacks.Writable.all (Context, Desc);
+                  Callbacks.Writable.all (This, Desc);
                end if;
                if (Event.Flags.Error or else Event.Flags.Hang_Up) and then
                   Callbacks.Error /= null
                then
-                  Callbacks.Error.all (Context, Desc);
+                  Callbacks.Error.all (This, Desc);
                end if;
             else
                raise Program_Error with "epoll_wait returned event for unknown descriptor";
@@ -142,12 +142,12 @@ package body Codesearch.IO is
    end Poll_Events;
 
    procedure Run
-      (Context : in out IO_Context)
+      (This : in out IO_Context)
    is
    begin
       loop
-         Poll_Timers (Context);
-         Poll_Events (Context);
+         Poll_Timers (This);
+         Poll_Events (This);
       end loop;
    end Run;
 

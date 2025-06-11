@@ -24,6 +24,8 @@ is
 
    type Session is private;
 
+   Null_Session : constant Session;
+
    procedure Create;
 
    function Open
@@ -83,9 +85,11 @@ private
    type Statements is array (Query_Type) of Sqlite.Statement;
 
    type Session is record
-      DB   : Sqlite.Connection;
-      Stmt : Statements;
+      DB   : Sqlite.Connection := null;
+      Stmt : Statements := (others => null);
       Insert_Row_Id : Natural := 0;
    end record;
+
+   Null_Session : constant Session := (others => <>);
 
 end Codesearch.Database;

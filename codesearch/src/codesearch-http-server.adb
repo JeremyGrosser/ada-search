@@ -10,6 +10,8 @@ with Ada.Calendar;
 with Ada.Exceptions;
 with Codesearch.Service;
 with Codesearch.Database;
+with Codesearch.File;
+with Codesearch.IO;
 with Ada.Text_IO;
 
 package body Codesearch.HTTP.Server is
@@ -18,7 +20,24 @@ package body Codesearch.HTTP.Server is
    Response_Timeout  : constant Duration := 3.0;
    Idle_Timeout      : constant Duration := 3.0;
 
-   DB : Codesearch.Database.Session;
+   DB_Session : access Codesearch.Database.Session := null
+      with Thread_Local_Storage;
+
+   function DB
+      return Codesearch.Database.Session
+   is
+   begin
+      if DB_Session = null then
+         Ada.Text_IO.Put_Line ("New database session");
+         DB_Session := new Codesearch.Database.Session;
+         DB_Session.all := Codesearch.Database.Open (Read_Only => True);
+      end if;
+      return DB_Session.all;
+   end DB;
+
+   type Server_Context is record
+      IOC : Codesearch.IO.IO_Context;
+   end record;
 
    type Session_Type is record
       Req            : Request := (others => <>);
@@ -56,7 +75,7 @@ package body Codesearch.HTTP.Server is
    begin
       Session.Expires_At := Clock + After;
       Codesearch.IO.Set_Timeout
-         (Context  => Context,
+         (This     => Context,
           Desc     => Sock,
           After    => After,
           Callback => On_Timeout'Access);
@@ -94,7 +113,7 @@ package body Codesearch.HTTP.Server is
       if Response_Buffers.Length (Session.Resp.Buffer) > 0 then
          Set_Timeout (Context, Session, Sock, Response_Timeout);
          Codesearch.IO.Set_Triggers
-            (Context  => Context,
+            (This     => Context,
              Desc     => Sock,
              Readable => False,
              Writable => True,
@@ -206,8 +225,8 @@ package body Codesearch.HTTP.Server is
       end if;
 
       Codesearch.IO.Register
-         (Context => Context,
-          Desc    => Sock,
+         (This     => Context,
+          Desc     => Sock,
           Readable => On_Readable'Access,
           Writable => On_Writable'Access,
           Error    => On_Error'Access);
@@ -237,10 +256,18 @@ package body Codesearch.HTTP.Server is
       (Context : in out Server_Context)
    is
    begin
-      DB := Codesearch.Database.Open (Read_Only => True);
-      --  Codesearch.IO.Set_Timeout (1.0, Print_Status'Access, To_Ada (0));
       Ada.Text_IO.Put_Line ("Server IO Running");
       Codesearch.IO.Run (Context.IOC);
    end Run;
 
+   task body Worker is
+      Context : Server_Context;
+   begin
+      Codesearch.File.Set_Working_Directory;
+      Bind (Context);
+      Run (Context);
+   exception
+      when E : others =>
+         Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
+   end Worker;
 end Codesearch.HTTP.Server;

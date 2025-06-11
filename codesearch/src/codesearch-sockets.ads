@@ -2,6 +2,12 @@ with Ada.Streams;
 with Interfaces.C;
 
 package Codesearch.Sockets is
+   --  This package provides a stripped down version of GNAT.Sockets. This
+   --  package only supports IPv6 TCP sockets. It adds support for the
+   --  SO_REUSEPORT socket option, which is missing from GNAT.Sockets.
+   --
+   --  There's a lot of questionable C interfacing in the body of this package.
+   --  It is not compatible with systems other than recent Linux on x86_64.
 
    Socket_Error : exception;
 
