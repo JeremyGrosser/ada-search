@@ -272,7 +272,7 @@ package body Codesearch.HTTP.Server is
       Codesearch.File.Set_Working_Directory;
       Bind (Context);
       Ada.Text_IO.Put_Line ("Server IO Running");
-      accept Ready;
+      accept Wait_Ready;
       Codesearch.IO.Run (Context.IOC);
    exception
       when E : others =>

@@ -6,6 +6,6 @@
 package Codesearch.HTTP.Server is
    task type Worker is
       entry Start;
-      entry Ready;
+      entry Wait_Ready;
    end Worker;
 end Codesearch.HTTP.Server;

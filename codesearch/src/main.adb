@@ -11,7 +11,7 @@ procedure Main is
 begin
    for W of Workers loop
       W.Start;
-      W.Ready;
+      W.Wait_Ready;
    end loop;
    loop
       delay 10.0;
