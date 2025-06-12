@@ -193,7 +193,6 @@ package body Codesearch.HTTP.Server is
       Listen_Sock : Socket_Type;
    begin
       Codesearch.IO.Initialize (Server.IOC);
-      Codesearch.Timers.Initialize (Server.Timers);
       Server.DB := Codesearch.Database.Open (Read_Only => True);
       Create_Socket (Listen_Sock);
       Set_Socket_Option (Listen_Sock, Reuse_Address, True);

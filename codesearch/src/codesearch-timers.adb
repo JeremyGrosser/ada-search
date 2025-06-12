@@ -1,19 +1,5 @@
 package body Codesearch.Timers is
-
    use Timer_Vectors;
-
-   procedure Initialize
-      (Wheel : in out Timer_Wheel)
-   is
-   begin
-      --  Clear all slots
-      for I in Wheel.Slots'Range loop
-         Clear (Wheel.Slots (I));
-      end loop;
-
-      Wheel.Current_Slot := 0;
-      Wheel.Start_Time := Ada.Real_Time.Clock;
-   end Initialize;
 
    procedure Set_Timeout
      (Wheel       : in out Timer_Wheel;
