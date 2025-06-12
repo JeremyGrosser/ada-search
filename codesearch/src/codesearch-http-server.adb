@@ -43,10 +43,15 @@ package body Codesearch.HTTP.Server is
    is
    begin
       Close_Socket (Context);
-   exception
-      when Socket_Error =>
-         null;
    end On_Timeout;
+
+   procedure On_Error
+      (Sock : Socket_Type;
+       User_Context : System.Address)
+   is
+   begin
+      Close_Socket (Sock);
+   end On_Error;
 
    procedure On_Request
       (Session      : in out Session_Type;
@@ -71,7 +76,7 @@ package body Codesearch.HTTP.Server is
              Desc     => Sock,
              Readable => False,
              Writable => True,
-             Error    => False);
+             Error    => True);
       end if;
    end On_Request;
 
@@ -98,9 +103,8 @@ package body Codesearch.HTTP.Server is
       end if;
    exception
       when Socket_Error =>
-         null;
+         Close_Socket (Sock);
       when Parse_Error =>
-         Ada.Text_IO.Put_Line ("Parse_Error");
          Close_Socket (Sock);
    end On_Readable;
 
@@ -134,13 +138,11 @@ package body Codesearch.HTTP.Server is
                 Desc     => Sock,
                 Readable => True,
                 Writable => False,
-                Error    => False);
+                Error    => True);
          end if;
       end if;
    exception
-      when E : Socket_Error =>
-         Ada.Text_IO.Put_Line ("Socket_Error in On_Writable");
-         Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
+      when Socket_Error =>
          Close_Socket (Sock);
    end On_Writable;
 
@@ -204,7 +206,7 @@ package body Codesearch.HTTP.Server is
           Desc          => Listen_Sock,
           Readable      => On_Connect'Access,
           Writable      => null,
-          Error         => null,
+          Error         => On_Error'Access,
           User_Context  => Server'Address);
    end Bind;
 
@@ -223,7 +225,6 @@ package body Codesearch.HTTP.Server is
          Codesearch.IO.Poll (Server.IOC);
          if Clock >= Next_Tick then
             Codesearch.Timers.Tick (Server.Timers);
-            Ada.Text_IO.Put_Line ("Tick");
             Next_Tick := Next_Tick + Seconds (1);
          end if;
       end loop;

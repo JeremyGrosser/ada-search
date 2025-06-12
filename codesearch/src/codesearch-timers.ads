@@ -5,6 +5,7 @@ with Codesearch.Sockets;
 package Codesearch.Timers is
 
    subtype Context_Type is Codesearch.Sockets.Socket_Type;
+   Max_Timeout : constant := 64;
 
    type Timer_Callback is access procedure
       (Context : Context_Type);
@@ -15,7 +16,8 @@ package Codesearch.Timers is
      (Wheel       : in out Timer_Wheel;
       Timeout_Sec : Natural;
       Callback    : Timer_Callback;
-      Context     : Context_Type);
+      Context     : Context_Type)
+   with Pre => Timeout_Sec <= Max_Timeout;
 
    procedure Tick
       (Wheel : in out Timer_Wheel);
@@ -32,8 +34,7 @@ private
    package Timer_Vectors is new Ada.Containers.Vectors
       (Timer_Id, Timer);
 
-   Wheel_Size : constant := 64;
-   type Slot_Index is mod Wheel_Size;
+   type Slot_Index is mod Max_Timeout;
    type Slots_Array is array (Slot_Index) of Timer_Vectors.Vector;
 
    type Timer_Wheel is record

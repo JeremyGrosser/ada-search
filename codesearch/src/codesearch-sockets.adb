@@ -129,12 +129,14 @@ package body Codesearch.Sockets is
          return int
       with Import, Convention => C, External_Name => "close";
 
-      Result : int;
+      Result : int with Unreferenced;
    begin
       Result := C_close (Sock);
-      if Result /= 0 then
-         raise Socket_Error with Errno'Image;
-      end if;
+      --  We don't actually care if close failed.
+      --
+      --  if Result /= 0 then
+      --     raise Socket_Error with Errno'Image;
+      --  end if;
    end Close_Socket;
 
    procedure Receive_Socket

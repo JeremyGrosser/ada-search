@@ -56,6 +56,9 @@ package body Codesearch.IO is
           Data => Interfaces.Unsigned_64 (Desc));
    begin
       Epoll.Control (This.EP, Desc, Epoll.Modify, Event'Access);
+   exception
+      when Epoll.Epoll_Error =>
+         null;
    end Set_Triggers;
 
    procedure Unregister
@@ -64,6 +67,9 @@ package body Codesearch.IO is
    is
    begin
       Epoll.Control (This.EP, Desc, Epoll.Delete, null);
+   exception
+      when Epoll.Epoll_Error =>
+         null;
    end Unregister;
 
    procedure Poll
