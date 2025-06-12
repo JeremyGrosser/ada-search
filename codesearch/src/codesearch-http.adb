@@ -137,6 +137,11 @@ package body Codesearch.HTTP is
       Put (This, Codesearch.Strings.Encode (Data));
    end Put;
 
+   function Is_Empty
+      (Resp : Response)
+      return Boolean
+   is (Response_Buffers.Length (Resp.Buffer) = 0);
+
    function Get_String
       (Req : Request;
        Sp  : Span)

@@ -3,6 +3,11 @@ with System;
 package body Codesearch.Sockets is
    use Interfaces.C;
 
+   function Errno
+      return Integer
+   with Import, Convention => C, External_Name => "__get_errno";
+   --  implemented by libgnarl
+
    subtype ssize_t is int;
 
    function htons
@@ -48,7 +53,7 @@ package body Codesearch.Sockets is
           optval  => Val'Address,
           optlen  => size_t (Val'Size / 8));
       if Result = -1 then
-         raise Socket_Error;
+         raise Socket_Error with Errno'Image;
       end if;
    end Set_Socket_Option;
 
@@ -69,7 +74,7 @@ package body Codesearch.Sockets is
       Copy.Port := htons (Copy.Port);
       Result := C_bind (Sock, Copy'Access, Copy'Size / 8);
       if Result /= 0 then
-         raise Socket_Error;
+         raise Socket_Error with Errno'Image;
       end if;
    end Bind_Socket;
 
@@ -87,7 +92,7 @@ package body Codesearch.Sockets is
    begin
       Result := C_listen (Sock, int (Backlog));
       if Result /= 0 then
-         raise Socket_Error;
+         raise Socket_Error with Errno'Image;
       end if;
    end Listen_Socket;
 
@@ -109,7 +114,7 @@ package body Codesearch.Sockets is
    begin
       Result := C_accept (Server, Copy'Address, Len'Address);
       if Result = -1 then
-         raise Socket_Error;
+         raise Socket_Error with Errno'Image;
       else
          Sock := Socket_Type (Result);
          Addr := Copy;
@@ -128,7 +133,7 @@ package body Codesearch.Sockets is
    begin
       Result := C_close (Sock);
       if Result /= 0 then
-         raise Socket_Error;
+         raise Socket_Error with Errno'Image;
       end if;
    end Close_Socket;
 
@@ -150,7 +155,7 @@ package body Codesearch.Sockets is
    begin
       Result := C_recv (Sock, Data'Address, size_t (Data'Length), 0);
       if Result = -1 then
-         raise Socket_Error;
+         raise Socket_Error with Errno'Image;
       else
          Last := Data'First + Ada.Streams.Stream_Element_Offset (Result);
       end if;
@@ -161,6 +166,8 @@ package body Codesearch.Sockets is
        Data : Ada.Streams.Stream_Element_Array;
        Last : out Ada.Streams.Stream_Element_Offset)
    is
+      MSG_NOSIGNAL : constant := 16#4000#; --  no SIGPIPE if connection is closed
+
       function C_send
          (sockfd : Socket_Type;
           buf    : System.Address;
@@ -172,9 +179,19 @@ package body Codesearch.Sockets is
       use type Ada.Streams.Stream_Element_Offset;
       Result : int;
    begin
-      Result := C_send (Sock, Data'Address, size_t (Data'Length), 0);
+      Result := C_send
+         (sockfd => Sock,
+          buf    => Data'Address,
+          len    => size_t (Data'Length),
+          flags  => MSG_NOSIGNAL);
       if Result = -1 then
-         raise Socket_Error;
+         Last := Data'First - 1;
+         if Errno = 32 then
+            --  Client closed connection
+            return;
+         else
+            raise Socket_Error with Errno'Image;
+         end if;
       else
          Last := Data'First + Ada.Streams.Stream_Element_Offset (Result);
       end if;

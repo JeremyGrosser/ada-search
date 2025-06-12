@@ -3,7 +3,9 @@
 --
 --  SPDX-License-Identifier: AGPL-3.0-or-later
 --
+pragma Ada_2022;
 with Codesearch.HTTP.Server;
+with Ada.Text_IO;
 
 procedure Main is
    package Server renames Codesearch.HTTP.Server;
@@ -13,7 +15,11 @@ begin
       W.Start;
       W.Wait_Ready;
    end loop;
-   loop
-      delay 10.0;
+
+   for W of Workers loop
+      W.Wait_Error;
+      Ada.Text_IO.Put (W'Image);
+      Ada.Text_IO.Put ("terminated with error");
+      Ada.Text_IO.New_Line;
    end loop;
 end Main;

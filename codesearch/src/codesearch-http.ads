@@ -84,6 +84,10 @@ private
       Buffer   : Response_Buffers.Unbounded_String := Response_Buffers.Null_Unbounded_String;
    end record;
 
+   function Is_Empty
+      (Resp : Response)
+      return Boolean;
+
    function Get_String
       (Req : Request;
        Sp  : Span)

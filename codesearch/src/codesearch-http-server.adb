@@ -84,6 +84,7 @@ package body Codesearch.HTTP.Server is
       use Ada.Calendar;
       Server : Server_Context with Import, Address => User_Context;
    begin
+      Ada.Text_IO.Put_Line ("Timeout");
       if Contains (Server.Sessions, Sock) then
          declare
             Session : constant Reference_Type := Reference (Server.Sessions, Sock);
@@ -113,8 +114,8 @@ package body Codesearch.HTTP.Server is
          Value => Codesearch.Strings.To_String
             (Payload_Length (Session.Resp)));
 
-      if Response_Buffers.Length (Session.Resp.Buffer) > 0 then
-         Set_Timeout (Context, Session, Sock, Response_Timeout, User_Context);
+      if not Is_Empty (Session.Resp) then
+         --  Set_Timeout (Context, Session, Sock, Response_Timeout, User_Context);
          Codesearch.IO.Set_Triggers
             (This     => Context,
              Desc     => Sock,
@@ -172,19 +173,24 @@ package body Codesearch.HTTP.Server is
          return;
       end if;
       Send_Socket (Sock, Item, Last);
-      Response_Buffers.Delete (Session.Resp.Buffer, 1, Natural (Last));
-      if Response_Buffers.Length (Session.Resp.Buffer) = 0 then
-         Session.Timers_Enabled := False;
-         Reset (Session.Req);
-         Reset (Session.Resp);
+      if Last = 0 then
+         --  Client closed connection
          Close_Socket (Sock);
-         --  Codesearch.IO.Set_Triggers
-         --     (This     => Context,
-         --      Desc     => Sock,
-         --      Readable => True,
-         --      Writable => False,
-         --      Error    => True);
-         --  Set_Timeout (Context, Session, Sock, Idle_Timeout, User_Context);
+         Session.Timers_Enabled := False;
+      else
+         Response_Buffers.Delete (Session.Resp.Buffer, 1, Natural (Last));
+         if Is_Empty (Session.Resp) then
+            --  No more data to send, wait for another request
+            Reset (Session.Req);
+            Reset (Session.Resp);
+            Codesearch.IO.Set_Triggers
+               (This     => Context,
+                Desc     => Sock,
+                Readable => True,
+                Writable => False,
+                Error    => True);
+            --  Set_Timeout (Context, Session, Sock, Idle_Timeout, User_Context);
+         end if;
       end if;
    exception
       when E : Socket_Error =>
@@ -222,7 +228,7 @@ package body Codesearch.HTTP.Server is
             New_Session : Session_Type := (others => <>);
          begin
             Session_Maps.Insert (Server.Sessions, Sock, New_Session);
-            Set_Timeout (Context, New_Session, Sock, Request_Timeout, User_Context);
+            --  Set_Timeout (Context, New_Session, Sock, Request_Timeout, User_Context);
          end;
       else
          declare
@@ -230,7 +236,7 @@ package body Codesearch.HTTP.Server is
          begin
             Reset (Session.Req);
             Reset (Session.Resp);
-            Set_Timeout (Context, Session, Sock, Request_Timeout, User_Context);
+            --  Set_Timeout (Context, Session, Sock, Request_Timeout, User_Context);
          end;
       end if;
 
@@ -277,5 +283,6 @@ package body Codesearch.HTTP.Server is
    exception
       when E : others =>
          Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
+         accept Wait_Error;
    end Worker;
 end Codesearch.HTTP.Server;
