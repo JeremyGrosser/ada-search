@@ -1,6 +1,4 @@
 private with Ada.Containers.Ordered_Maps;
-private with Ada.Containers.Ordered_Sets;
-private with Ada.Calendar;
 private with Epoll;
 
 with Codesearch.Sockets;
@@ -13,8 +11,7 @@ package Codesearch.IO is
    subtype Descriptor is Codesearch.Sockets.Socket_Type;
 
    type Event_Callback is access procedure
-      (This : in out IO_Context;
-       Desc : Descriptor;
+      (Desc : Descriptor;
        User_Context : System.Address);
 
    procedure Initialize
@@ -37,13 +34,6 @@ package Codesearch.IO is
       (This : in out IO_Context;
        Desc : Descriptor);
 
-   procedure Set_Timeout
-      (This          : in out IO_Context;
-       After         : Duration;
-       Callback      : Event_Callback;
-       Desc          : Descriptor;
-       User_Context  : System.Address);
-
    procedure Run
       (This : in out IO_Context);
 
@@ -59,23 +49,9 @@ private
       (Key_Type      => Descriptor,
        Element_Type  => Event_Callbacks);
 
-   type Timer is record
-      Expires_At     : Ada.Calendar.Time;
-      Callback       : Event_Callback;
-      Desc           : Descriptor;
-      User_Context   : System.Address;
-   end record;
-
-   function "<" (Left, Right : Timer)
-      return Boolean;
-
-   package Timer_Sets is new Ada.Containers.Ordered_Sets
-      (Element_Type => Timer);
-
    type IO_Context is record
       EP          : Epoll.Epoll_Descriptor;
       Descriptors : Descriptor_Maps.Map;
-      Timers      : Timer_Sets.Set;
    end record;
 
 end Codesearch.IO;

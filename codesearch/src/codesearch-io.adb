@@ -69,48 +69,6 @@ package body Codesearch.IO is
       Epoll.Control (This.EP, Desc, Epoll.Delete, null);
    end Unregister;
 
-   function "<" (Left, Right : Timer)
-      return Boolean
-   is
-      use Ada.Calendar;
-   begin
-      return Left.Expires_At < Right.Expires_At;
-   end "<";
-
-   procedure Set_Timeout
-      (This          : in out IO_Context;
-       After         : Duration;
-       Callback      : Event_Callback;
-       Desc          : Descriptor;
-       User_Context  : System.Address)
-   is
-      use Ada.Calendar;
-      T : Timer;
-   begin
-      T.Expires_At := Clock + After;
-      T.Callback := Callback;
-      T.Desc := Desc;
-      T.User_Context := User_Context;
-      Timer_Sets.Include (This.Timers, T);
-   end Set_Timeout;
-
-   procedure Poll_Timers
-      (This : in out IO_Context)
-   is
-      use Timer_Sets;
-      use Ada.Calendar;
-      Now : constant Time := Clock;
-      T : Timer;
-   begin
-      loop
-         exit when Is_Empty (This.Timers);
-         T := First_Element (This.Timers);
-         exit when T.Expires_At > Now;
-         Delete_First (This.Timers);
-         T.Callback.all (This, T.Desc, T.User_Context);
-      end loop;
-   end Poll_Timers;
-
    procedure Poll_Events
       (This : in out IO_Context)
    is
@@ -127,17 +85,17 @@ package body Codesearch.IO is
                if Event.Flags.Readable and then
                   Callbacks.Readable /= null
                then
-                  Callbacks.Readable.all (This, Desc, Callbacks.User_Context);
+                  Callbacks.Readable.all (Desc, Callbacks.User_Context);
                end if;
                if Event.Flags.Writable and then
                   Callbacks.Writable /= null
                then
-                  Callbacks.Writable.all (This, Desc, Callbacks.User_Context);
+                  Callbacks.Writable.all (Desc, Callbacks.User_Context);
                end if;
                if (Event.Flags.Error or else Event.Flags.Hang_Up) and then
                   Callbacks.Error /= null
                then
-                  Callbacks.Error.all (This, Desc, Callbacks.User_Context);
+                  Callbacks.Error.all (Desc, Callbacks.User_Context);
                end if;
             else
                raise Program_Error with "epoll_wait returned event for unknown descriptor";
@@ -151,7 +109,6 @@ package body Codesearch.IO is
    is
    begin
       loop
-         Poll_Timers (This);
          Poll_Events (This);
       end loop;
    end Run;

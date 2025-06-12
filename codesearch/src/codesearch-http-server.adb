@@ -6,7 +6,6 @@
 with Ada.Streams; use Ada.Streams;
 with Codesearch.Sockets; use Codesearch.Sockets;
 with Ada.Containers.Ordered_Maps;
-with Ada.Calendar;
 with Ada.Exceptions;
 with Codesearch.Service;
 with Codesearch.Database;
@@ -17,15 +16,9 @@ with Ada.Text_IO;
 
 package body Codesearch.HTTP.Server is
 
-   Request_Timeout   : constant Duration := 10.0;
-   Response_Timeout  : constant Duration := 10.0;
-   Idle_Timeout      : constant Duration := 10.0;
-
    type Session_Type is record
-      Req            : Request := (others => <>);
-      Resp           : Response := (others => <>);
-      Expires_At     : Ada.Calendar.Time := Ada.Calendar.Clock;
-      Timers_Enabled : Boolean := True;
+      Req  : Request := (others => <>);
+      Resp : Response := (others => <>);
    end record;
 
    use type Codesearch.Sockets.Socket_Type;
@@ -40,67 +33,18 @@ package body Codesearch.HTTP.Server is
    end record;
 
    procedure On_Readable
-      (Context : in out Codesearch.IO.IO_Context;
-       Sock    : Socket_Type;
+      (Sock : Socket_Type;
        User_Context : System.Address);
    procedure On_Writable
-      (Context : in out Codesearch.IO.IO_Context;
-       Sock    : Socket_Type;
+      (Sock : Socket_Type;
        User_Context : System.Address);
    procedure On_Error
-      (Context : in out Codesearch.IO.IO_Context;
-       Sock    : Socket_Type;
+      (Sock : Socket_Type;
        User_Context : System.Address);
-   procedure On_Timeout
-      (Context : in out Codesearch.IO.IO_Context;
-       Sock    : Socket_Type;
-       User_Context : System.Address);
-
-   procedure Set_Timeout
-      (Context : in out Codesearch.IO.IO_Context;
-       Session : in out Session_Type;
-       Sock    : Socket_Type;
-       After   : Duration;
-       User_Context : System.Address)
-   is
-      use Ada.Calendar;
-   begin
-      Session.Expires_At := Clock + After;
-      Codesearch.IO.Set_Timeout
-         (This     => Context,
-          Desc     => Sock,
-          After    => After,
-          Callback => On_Timeout'Access,
-          User_Context => User_Context);
-   end Set_Timeout;
-
-   procedure On_Timeout
-      (Context : in out Codesearch.IO.IO_Context;
-       Sock    : Socket_Type;
-       User_Context : System.Address)
-   is
-      pragma Unreferenced (Context);
-      use Session_Maps;
-      use Ada.Calendar;
-      Server : Server_Context with Import, Address => User_Context;
-   begin
-      Ada.Text_IO.Put_Line ("Timeout");
-      if Contains (Server.Sessions, Sock) then
-         declare
-            Session : constant Reference_Type := Reference (Server.Sessions, Sock);
-         begin
-            if Session.Timers_Enabled and then Clock > Session.Expires_At then
-               Close_Socket (Sock);
-               Session.Timers_Enabled := False;
-            end if;
-         end;
-      end if;
-   end On_Timeout;
 
    procedure On_Request
-      (Context : in out Codesearch.IO.IO_Context;
-       Session : in out Session_Type;
-       Sock    : Socket_Type;
+      (Session      : in out Session_Type;
+       Sock         : Socket_Type;
        User_Context : System.Address)
    is
       Server : Server_Context with Import, Address => User_Context;
@@ -115,9 +59,8 @@ package body Codesearch.HTTP.Server is
             (Payload_Length (Session.Resp)));
 
       if not Is_Empty (Session.Resp) then
-         --  Set_Timeout (Context, Session, Sock, Response_Timeout, User_Context);
          Codesearch.IO.Set_Triggers
-            (This     => Context,
+            (This     => Server.IOC,
              Desc     => Sock,
              Readable => False,
              Writable => True,
@@ -126,8 +69,7 @@ package body Codesearch.HTTP.Server is
    end On_Request;
 
    procedure On_Readable
-      (Context : in out Codesearch.IO.IO_Context;
-       Sock    : Socket_Type;
+      (Sock : Socket_Type;
        User_Context : System.Address)
    is
       Server : Server_Context with Import, Address => User_Context;
@@ -139,7 +81,6 @@ package body Codesearch.HTTP.Server is
       Receive_Socket (Sock, Item (Last + 1 .. Item'Last), Last);
       Session.Req.Last := Natural (Last);
       if Session.Req.Last = 0 then
-         Session.Timers_Enabled := False;
          Close_Socket (Sock);
          return;
       end if;
@@ -147,7 +88,7 @@ package body Codesearch.HTTP.Server is
       Parse_Request (Session.Req);
 
       if Session.Req.End_Headers > 0 then
-         On_Request (Context, Session, Sock, User_Context);
+         On_Request (Session, Sock, User_Context);
       end if;
    exception
       when Socket_Error =>
@@ -158,8 +99,7 @@ package body Codesearch.HTTP.Server is
    end On_Readable;
 
    procedure On_Writable
-      (Context : in out Codesearch.IO.IO_Context;
-       Sock    : Socket_Type;
+      (Sock : Socket_Type;
        User_Context : System.Address)
    is
       Server : Server_Context with Import, Address => User_Context;
@@ -176,7 +116,6 @@ package body Codesearch.HTTP.Server is
       if Last = 0 then
          --  Client closed connection
          Close_Socket (Sock);
-         Session.Timers_Enabled := False;
       else
          Response_Buffers.Delete (Session.Resp.Buffer, 1, Natural (Last));
          if Is_Empty (Session.Resp) then
@@ -184,12 +123,11 @@ package body Codesearch.HTTP.Server is
             Reset (Session.Req);
             Reset (Session.Resp);
             Codesearch.IO.Set_Triggers
-               (This     => Context,
+               (This     => Server.IOC,
                 Desc     => Sock,
                 Readable => True,
                 Writable => False,
                 Error    => True);
-            --  Set_Timeout (Context, Session, Sock, Idle_Timeout, User_Context);
          end if;
       end if;
    exception
@@ -200,21 +138,18 @@ package body Codesearch.HTTP.Server is
    end On_Writable;
 
    procedure On_Error
-      (Context : in out Codesearch.IO.IO_Context;
-       Sock    : Socket_Type;
+      (Sock : Socket_Type;
        User_Context : System.Address)
    is
-      pragma Unreferenced (Context);
-      Server : Server_Context with Import, Address => User_Context;
-      Session : constant Session_Maps.Reference_Type := Session_Maps.Reference (Server.Sessions, Sock);
+      pragma Unreferenced (User_Context);
+      --  Server : Server_Context with Import, Address => User_Context;
+      --  Session : constant Session_Maps.Reference_Type := Session_Maps.Reference (Server.Sessions, Sock);
    begin
-      Session.Timers_Enabled := False;
-      --  Close_Socket (Sock);
+      Close_Socket (Sock);
    end On_Error;
 
    procedure On_Connect
-      (Context     : in out Codesearch.IO.IO_Context;
-       Listen_Sock : Socket_Type;
+      (Listen_Sock  : Socket_Type;
        User_Context : System.Address)
    is
       Server : Server_Context with Import, Address => User_Context;
@@ -225,10 +160,9 @@ package body Codesearch.HTTP.Server is
 
       if not Session_Maps.Contains (Server.Sessions, Sock) then
          declare
-            New_Session : Session_Type := (others => <>);
+            New_Session : constant Session_Type := (others => <>);
          begin
             Session_Maps.Insert (Server.Sessions, Sock, New_Session);
-            --  Set_Timeout (Context, New_Session, Sock, Request_Timeout, User_Context);
          end;
       else
          declare
@@ -236,12 +170,11 @@ package body Codesearch.HTTP.Server is
          begin
             Reset (Session.Req);
             Reset (Session.Resp);
-            --  Set_Timeout (Context, Session, Sock, Request_Timeout, User_Context);
          end;
       end if;
 
       Codesearch.IO.Register
-         (This     => Context,
+         (This     => Server.IOC,
           Desc     => Sock,
           Readable => On_Readable'Access,
           Writable => On_Writable'Access,
@@ -250,36 +183,38 @@ package body Codesearch.HTTP.Server is
    end On_Connect;
 
    procedure Bind
-      (Context : out Server_Context)
+      (Server : out Server_Context)
    is
       Addr : constant Sock_Addr :=
          (Port   => 9999,
           others => <>);
       Listen_Sock : Socket_Type;
    begin
-      Codesearch.IO.Initialize (Context.IOC);
-      Context.DB := Codesearch.Database.Open (Read_Only => True);
+      Codesearch.IO.Initialize (Server.IOC);
+      Server.DB := Codesearch.Database.Open (Read_Only => True);
       Create_Socket (Listen_Sock);
       Set_Socket_Option (Listen_Sock, Reuse_Address, True);
       Set_Socket_Option (Listen_Sock, Reuse_Port, True);
       Bind_Socket (Listen_Sock, Addr);
       Listen_Socket (Listen_Sock, 256);
-      Codesearch.IO.Register (Context.IOC, Listen_Sock,
-         Readable => On_Connect'Access,
-         Writable => null,
-         Error    => null,
-         User_Context => Context'Address);
+      Codesearch.IO.Register
+         (This          => Server.IOC,
+          Desc          => Listen_Sock,
+          Readable      => On_Connect'Access,
+          Writable      => null,
+          Error         => null,
+          User_Context  => Server'Address);
    end Bind;
 
    task body Worker is
-      Context : Server_Context;
+      Server : Server_Context;
    begin
       accept Start;
       Codesearch.File.Set_Working_Directory;
-      Bind (Context);
-      Ada.Text_IO.Put_Line ("Server IO Running");
+      Bind (Server);
       accept Wait_Ready;
-      Codesearch.IO.Run (Context.IOC);
+      Ada.Text_IO.Put_Line ("Server IO Running");
+      Codesearch.IO.Run (Server.IOC);
    exception
       when E : others =>
          Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
