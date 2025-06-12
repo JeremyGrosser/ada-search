@@ -21,10 +21,7 @@ package body Codesearch.IO is
       Event : aliased Epoll.Epoll_Event;
    begin
       Event.Flags :=
-         (Readable => Readable /= null,
-          Writable => Writable /= null,
-          Error    => Error /= null,
-          Hang_Up  => Error /= null,
+         (Readable => True,
           others   => False);
       Event.Data := Interfaces.Unsigned_64 (Desc);
       Epoll.Control (This.EP, Desc, Epoll.Add, Event'Access);
@@ -69,12 +66,12 @@ package body Codesearch.IO is
       Epoll.Control (This.EP, Desc, Epoll.Delete, null);
    end Unregister;
 
-   procedure Poll_Events
+   procedure Poll
       (This : in out IO_Context)
    is
       use Descriptor_Maps;
    begin
-      for Event of Epoll.Wait (This.EP, Timeout => -1, Max_Events => 512) loop
+      for Event of Epoll.Wait (This.EP, Timeout => 1000, Max_Events => 64) loop
          declare
             Desc : constant Descriptor := Descriptor
                (Integer (Event.Data));
@@ -102,15 +99,6 @@ package body Codesearch.IO is
             end if;
          end;
       end loop;
-   end Poll_Events;
-
-   procedure Run
-      (This : in out IO_Context)
-   is
-   begin
-      loop
-         Poll_Events (This);
-      end loop;
-   end Run;
+   end Poll;
 
 end Codesearch.IO;

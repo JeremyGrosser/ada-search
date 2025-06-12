@@ -157,7 +157,7 @@ package body Codesearch.Sockets is
       if Result = -1 then
          raise Socket_Error with Errno'Image;
       else
-         Last := Data'First + Ada.Streams.Stream_Element_Offset (Result);
+         Last := Data'First + Ada.Streams.Stream_Element_Offset (Result) - 1;
       end if;
    end Receive_Socket;
 

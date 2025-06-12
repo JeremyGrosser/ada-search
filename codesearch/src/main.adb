@@ -9,7 +9,7 @@ with Ada.Text_IO;
 
 procedure Main is
    package Server renames Codesearch.HTTP.Server;
-   Workers : array (1 .. 2) of Server.Worker;
+   Workers : array (1 .. 1) of Server.Worker;
 begin
    for W of Workers loop
       W.Start;

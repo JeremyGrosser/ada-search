@@ -34,7 +34,7 @@ package Codesearch.IO is
       (This : in out IO_Context;
        Desc : Descriptor);
 
-   procedure Run
+   procedure Poll
       (This : in out IO_Context);
 
 private
