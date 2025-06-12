@@ -74,7 +74,7 @@ package body Codesearch.IO is
    is
       use Descriptor_Maps;
    begin
-      for Event of Epoll.Wait (This.EP, Timeout => 1, Max_Events => 8) loop
+      for Event of Epoll.Wait (This.EP, Timeout => -1, Max_Events => 512) loop
          declare
             Desc : constant Descriptor := Descriptor
                (Integer (Event.Data));

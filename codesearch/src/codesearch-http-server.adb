@@ -42,6 +42,16 @@ package body Codesearch.HTTP.Server is
       (Sock : Socket_Type;
        User_Context : System.Address);
 
+   procedure Close
+      (Server  : in out Server_Context;
+       Session : in out Session_Type)
+   is
+      pragma Unreferenced (Server);
+   begin
+      --  Codesearch.IO.Unregister (Server.IOC, Session.Resp.Socket);
+      Close_Socket (Session.Resp.Socket);
+   end Close;
+
    procedure On_Request
       (Session      : in out Session_Type;
        Sock         : Socket_Type;
@@ -78,24 +88,22 @@ package body Codesearch.HTTP.Server is
          with Address => Session.Req.Item'Address;
       Last : Stream_Element_Offset := 0;
    begin
-      Receive_Socket (Sock, Item (Last + 1 .. Item'Last), Last);
-      Session.Req.Last := Natural (Last);
-      if Session.Req.Last = 0 then
-         Close_Socket (Sock);
-         return;
-      end if;
-
-      Parse_Request (Session.Req);
-
-      if Session.Req.End_Headers > 0 then
-         On_Request (Session, Sock, User_Context);
+      Receive_Socket (Sock, Item, Last);
+      if Last = 0 then
+         Close (Server, Session);
+      else
+         Session.Req.Last := Natural (Last);
+         Parse_Request (Session.Req);
+         if Session.Req.End_Headers > 0 then
+            On_Request (Session, Sock, User_Context);
+         end if;
       end if;
    exception
       when Socket_Error =>
          null;
       when Parse_Error =>
          Ada.Text_IO.Put_Line ("Parse_Error");
-         --  On_Error (Sock);
+         Close (Server, Session);
    end On_Readable;
 
    procedure On_Writable
@@ -115,7 +123,7 @@ package body Codesearch.HTTP.Server is
       Send_Socket (Sock, Item, Last);
       if Last = 0 then
          --  Client closed connection
-         Close_Socket (Sock);
+         Close (Server, Session);
       else
          Response_Buffers.Delete (Session.Resp.Buffer, 1, Natural (Last));
          if Is_Empty (Session.Resp) then
@@ -134,18 +142,17 @@ package body Codesearch.HTTP.Server is
       when E : Socket_Error =>
          Ada.Text_IO.Put_Line ("Socket_Error in On_Writable");
          Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
-         --  On_Error (Sock);
+         Close (Server, Session);
    end On_Writable;
 
    procedure On_Error
       (Sock : Socket_Type;
        User_Context : System.Address)
    is
-      pragma Unreferenced (User_Context);
-      --  Server : Server_Context with Import, Address => User_Context;
-      --  Session : constant Session_Maps.Reference_Type := Session_Maps.Reference (Server.Sessions, Sock);
+      Server  : Server_Context with Import, Address => User_Context;
+      Session : constant Session_Maps.Reference_Type := Session_Maps.Reference (Server.Sessions, Sock);
    begin
-      Close_Socket (Sock);
+      Close (Server, Session);
    end On_Error;
 
    procedure On_Connect
