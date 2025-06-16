@@ -4,17 +4,19 @@
 --  SPDX-License-Identifier: AGPL-3.0-or-later
 --
 pragma Extensions_Allowed (On);
-with Codesearch.Strings; use Codesearch.Strings;
+with Codesearch.Database;
+with Eva.Strings; use Eva.Strings;
 with Index;
 with Source_Highlight;
 with Static_File;
 
 package body Codesearch.Service is
 
+   DB : constant Codesearch.Database.Session := Codesearch.Database.Open (Read_Only => True);
+
    procedure Handle_Request
-      (Request  : HTTP.Request;
-       Response : in out HTTP.Response;
-       DB       : Codesearch.Database.Session)
+      (Request  : Eva.HTTP.Request;
+       Response : in out Eva.HTTP.Response)
    is
       P : constant Unicode := Decode (UTF8 (Request.Path));
    begin

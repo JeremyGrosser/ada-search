@@ -3,19 +3,19 @@
 --
 --  SPDX-License-Identifier: AGPL-3.0-or-later
 --
-with Codesearch.Strings; use Codesearch.Strings;
-with Codesearch.HTTP;
+with Eva.Strings; use Eva.Strings;
+with Eva.HTTP;
 with Codesearch.File;
 with Codesearch.Template;
 with Codesearch.Database;
 with URI;
 
 procedure Source_Highlight
-   (Request  : Codesearch.HTTP.Request;
-    Response : in out Codesearch.HTTP.Response;
+   (Request  : Eva.HTTP.Request;
+    Response : in out Eva.HTTP.Response;
     DB       : Codesearch.Database.Session)
 is
-   package HTTP renames Codesearch.HTTP;
+   package HTTP renames Eva.HTTP;
    package File renames Codesearch.File;
    package Template renames Codesearch.Template;
 
@@ -28,11 +28,11 @@ begin
       if Text = "" then
          HTTP.Set_Status (Response, 404, "Not Found");
          HTTP.Set_Header (Response, "Content-Type", "text/plain;charset=utf-8");
-         HTTP.Put (Response, "404 Not Found" & Codesearch.Strings.LF);
+         HTTP.Put (Response, "404 Not Found" & Eva.Strings.LF);
          return;
       elsif Ends_With (P, ".html") then
          declare
-            use Codesearch.Strings.Unicode_Maps;
+            use Eva.Strings.Unicode_Maps;
             Env      : Map := Empty_Map;
             T        : constant Unicode := File.Read_Resource ("highlight.html");
             Prefix   : constant String := "source/alire-20241219/";
@@ -40,9 +40,13 @@ begin
             Title    : constant Unicode := Remove_Suffix (Filename, ".html");
             Link     : constant Unicode := "/" & Remove_Suffix (Basename, ".html");
          begin
-            if Ends_With (Basename, ".ads.html") and then Codesearch.Database.Exists (DB, Remove_Suffix (Basename, ".ads.html") & ".adb") then
+            if Ends_With (Basename, ".ads.html") and then
+               Codesearch.Database.Exists (DB, Remove_Suffix (Basename, ".ads.html") & ".adb")
+            then
                Insert (Env, "related", "<a href=""" & Remove_Suffix (Link, ".ads") & ".adb.html"">go to body</a>");
-            elsif Ends_With (Basename, ".adb.html") and then Codesearch.Database.Exists (DB, Remove_Suffix (Basename, ".adb.html") & ".ads") then
+            elsif Ends_With (Basename, ".adb.html") and then
+               Codesearch.Database.Exists (DB, Remove_Suffix (Basename, ".adb.html") & ".ads")
+            then
                Insert (Env, "related", "<a href=""" & Remove_Suffix (Link, ".adb") & ".ads.html"">go to spec</a>");
             else
                Insert (Env, "related", "");

@@ -3,16 +3,14 @@
 --
 --  SPDX-License-Identifier: AGPL-3.0-or-later
 --
-with Codesearch.HTTP;
-with Codesearch.Database;
+with Eva.HTTP;
 
 package Codesearch.Service is
 
-   package HTTP renames Codesearch.HTTP;
+   package HTTP renames Eva.HTTP;
 
    procedure Handle_Request
       (Request  : HTTP.Request;
-       Response : in out HTTP.Response;
-       DB       : Codesearch.Database.Session);
+       Response : in out HTTP.Response);
 
 end Codesearch.Service;

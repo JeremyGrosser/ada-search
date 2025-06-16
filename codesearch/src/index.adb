@@ -4,20 +4,20 @@
 --  SPDX-License-Identifier: AGPL-3.0-or-later
 --
 with Ada.Strings.UTF_Encoding;
-with Codesearch.HTTP;
+with Eva.HTTP;
+with Eva.Strings;
 with Codesearch.Database;
-with Codesearch.Strings;
 with Codesearch.File;
 with Codesearch.Template;
 with URI;
 
 procedure Index
-   (Request  : Codesearch.HTTP.Request;
-    Response : in out Codesearch.HTTP.Response;
+   (Request  : Eva.HTTP.Request;
+    Response : in out Eva.HTTP.Response;
     DB       : Codesearch.Database.Session)
 is
-   package HTTP renames Codesearch.HTTP;
-   package Str renames Codesearch.Strings;
+   package HTTP renames Eva.HTTP;
+   package Str renames Eva.Strings;
    package File renames Codesearch.File;
    package Template renames Codesearch.Template;
 

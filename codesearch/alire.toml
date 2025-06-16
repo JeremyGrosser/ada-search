@@ -28,3 +28,9 @@ sqlite3.THREADSAFE = 1
 
 [[pins]]
 sqlite3 = { url='https://github.com/JeremyGrosser/sqlite3_binding.git' }
+
+[[depends-on]]
+eva = "~0.1.0-dev"
+
+[[pins]]
+eva = { path='../../eva' }

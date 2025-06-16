@@ -3,7 +3,7 @@
 --
 --  SPDX-License-Identifier: AGPL-3.0-or-later
 --
-with Codesearch.Strings; use Codesearch.Strings;
+with Eva.Strings; use Eva.Strings;
 with Codesearch_Config;
 with Resources;
 

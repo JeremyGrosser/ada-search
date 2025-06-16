@@ -4,13 +4,13 @@
 --  SPDX-License-Identifier: AGPL-3.0-or-later
 --
 pragma Extensions_Allowed (On);
-with Codesearch.Strings; use Codesearch.Strings;
-with Codesearch.HTTP;
+with Eva.Strings; use Eva.Strings;
+with Eva.HTTP;
 with Codesearch.File;
 
 procedure Static_File
-   (Request  : Codesearch.HTTP.Request;
-    Response : in out Codesearch.HTTP.Response)
+   (Request  : Eva.HTTP.Request;
+    Response : in out Eva.HTTP.Response)
 is
    package File renames Codesearch.File;
 

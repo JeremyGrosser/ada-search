@@ -7,8 +7,8 @@ with Ada.Directories; use Ada.Directories;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
+with Eva.Strings;
 with Codesearch.Database;
-with Codesearch.Strings;
 with Codesearch.File;
 with Ada.Text_IO;
 
@@ -43,7 +43,7 @@ procedure Build_Index is
    is ((Ends_With (Name, ".ads") or else
        Ends_With (Name, ".adb") or else
        Ends_With (Name, ".ada")) and then
-       not Codesearch.Database.Exists (DB, Codesearch.Strings.Decode (Codesearch.Strings.UTF8 (Name))));
+       not Codesearch.Database.Exists (DB, Eva.Strings.Decode (Eva.Strings.UTF8 (Name))));
 
    procedure Index_File
       (Full_Name : String)
