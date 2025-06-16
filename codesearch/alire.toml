@@ -33,4 +33,4 @@ sqlite3 = { url='https://github.com/JeremyGrosser/sqlite3_binding.git' }
 eva = "~0.1.0-dev"
 
 [[pins]]
-eva = { path='../../eva' }
+eva = { url='https://github.com/JeremyGrosser/eva.git' }
